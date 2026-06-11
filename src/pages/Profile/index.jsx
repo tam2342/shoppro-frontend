@@ -1,13 +1,16 @@
 import { useState } from 'react';
 import { FiUser, FiPackage, FiMapPin, FiHeart, FiSettings, FiLogOut, FiEdit2 } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
-import { useAuthStore } from '../../store/useAuthStore'; // Import store
+import { useAuthStore } from '../../store/useAuthStore';
+import UserOrderList from '../../components/UserOrderList';
+// 👉 ĐÃ THÊM IMPORT USER WISHLIST
+import UserWishlist from '../../components/UserWishlist'; 
 
 const Profile = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('dashboard');
   
-  // 1. Lấy dữ liệu user và hàm logout từ Store
+  // Lấy dữ liệu user và hàm logout từ Store
   const { user, logout } = useAuthStore();
 
   const handleLogout = () => {
@@ -43,7 +46,7 @@ const Profile = () => {
           {/* Sidebar */}
           <div className="w-full md:w-72 flex-shrink-0">
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden sticky top-24">
-              {/* User Avatar Info - ĐÃ NỐI DỮ LIỆU THẬT */}
+              {/* User Avatar Info */}
               <div className="p-6 border-b border-gray-100 flex items-center space-x-4 bg-gray-50">
                 <div className="w-14 h-14 rounded-full bg-blue-600 text-white flex items-center justify-center text-xl font-bold shadow-md uppercase">
                   {user.name?.charAt(0)}
@@ -86,6 +89,7 @@ const Profile = () => {
 
           {/* Main Content Area */}
           <div className="flex-1">
+            {/* TAB: TỔNG QUAN */}
             {activeTab === 'dashboard' && (
               <div className="space-y-6">
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
@@ -137,7 +141,14 @@ const Profile = () => {
               </div>
             )}
 
-            {activeTab !== 'dashboard' && (
+            {/* 👉 TAB: ĐƠN HÀNG CỦA TÔI */}
+            {activeTab === 'orders' && <UserOrderList />}
+
+            {/* 👉 TAB: SẢN PHẨM YÊU THÍCH */}
+            {activeTab === 'wishlist' && <UserWishlist />}
+
+            {/* CÁC TAB KHÁC (Chưa làm tới) */}
+            {activeTab !== 'dashboard' && activeTab !== 'orders' && activeTab !== 'wishlist' && (
               <div className="bg-white p-12 rounded-2xl shadow-sm border border-gray-100 text-center flex flex-col items-center justify-center min-h-[400px]">
                 <FiPackage size={48} className="text-gray-300 mb-4" />
                 <h2 className="text-xl font-bold text-gray-900 mb-2">Đang phát triển</h2>

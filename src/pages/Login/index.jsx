@@ -4,12 +4,12 @@ import { FiMail, FiLock, FiArrowRight } from 'react-icons/fi';
 import { FcGoogle } from 'react-icons/fc';
 import axios from 'axios';
 import { useAuthStore } from '../../store/useAuthStore';
+import { useGoogleLogin } from '@react-oauth/google'; // 👉 ĐÃ THÊM: Import thư viện Google
 
 const Login = () => {
   const login = useAuthStore((state) => state.login);
   const navigate = useNavigate();
 
-  // 1. Khởi tạo State để quản lý dữ liệu form và trạng thái tải
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -17,36 +17,57 @@ const Login = () => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  // 2. Hàm cập nhật dữ liệu khi người dùng gõ phím
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // 3. Hàm xử lý logic gọi API Đăng nhập
+  // Hàm xử lý logic gọi API Đăng nhập truyền thống
   const handleLogin = async (e) => {
-    e.preventDefault(); // Ngăn trang web bị reload
+    e.preventDefault(); 
     setError('');
     setIsLoading(true);
 
     try {
-      // Bắn dữ liệu lên Backend
       const response = await axios.post('https://shoppro-backend-k01l.onrender.com/api/auth/login', {
         email: formData.email,
         password: formData.password
       });
 
-      // Nếu thành công, lưu thông tin User và Token vào Store
       login(response.data);
-
-      // Chuyển thẳng về trang chủ
       navigate('/');
     } catch (err) {
-      // Bắt lỗi từ Backend (Sai pass, không tìm thấy email...)
       setError(err.response?.data?.message || 'Có lỗi xảy ra khi kết nối tới Server');
     } finally {
       setIsLoading(false);
     }
   };
+
+  // 👉 ĐÃ THÊM: Hàm xử lý Đăng nhập bằng Google
+  const loginWithGoogle = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      try {
+        setIsLoading(true);
+        setError('');
+        
+        // 👉 ĐÃ SỬA: Phải trỏ về localhost:5000 để gọi cái code Backend mới viết ở dưới máy!
+        const response = await axios.post('https://shoppro-backend-k01l.onrender.com/api/auth/google', {
+          access_token: tokenResponse.access_token
+        });
+        
+        login(response.data);
+        navigate('/');
+      } catch (err) {
+        console.error("Lỗi Google Login:", err);
+        setError(err.response?.data?.message || 'Xác thực Google thất bại trên Server!');
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    // ...
+    onError: () => {
+      setError('Bạn đã hủy đăng nhập Google hoặc có sự cố xảy ra.');
+    }
+  });
 
   return (
     <div className="min-h-screen bg-white flex">
@@ -72,7 +93,7 @@ const Login = () => {
                 
                 {/* Khu vực hiển thị thông báo lỗi từ Server */}
                 {error && (
-                  <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-md">
+                  <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-md animate-fade-in">
                     <p className="text-sm text-red-700 font-medium">{error}</p>
                   </div>
                 )}
@@ -147,7 +168,7 @@ const Login = () => {
                     disabled={isLoading}
                     className={`w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-xl shadow-sm text-sm font-bold text-white ${isLoading ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'} focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors`}
                   >
-                    {isLoading ? 'Đang kiểm tra...' : 'Đăng nhập'} <FiArrowRight className="ml-2" />
+                    {isLoading ? 'Đang xử lý...' : 'Đăng nhập'} <FiArrowRight className="ml-2" />
                   </button>
                 </div>
               </form>
@@ -163,7 +184,13 @@ const Login = () => {
                 </div>
 
                 <div className="mt-6">
-                  <button className="w-full flex justify-center items-center py-3 px-4 border border-gray-300 rounded-xl shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+                  {/* 👉 ĐÃ THÊM: Gắn sự kiện onClick gọi hàm loginWithGoogle */}
+                  <button 
+                    type="button"
+                    onClick={() => loginWithGoogle()}
+                    disabled={isLoading}
+                    className="w-full flex justify-center items-center py-3 px-4 border border-gray-300 rounded-xl shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
                     <FcGoogle className="w-5 h-5 mr-2" />
                     Đăng nhập bằng Google
                   </button>

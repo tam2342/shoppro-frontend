@@ -48,14 +48,21 @@ const Cart = () => {
           <div className="lg:col-span-8 space-y-4">
             {cart.map((item) => (
               <div key={item._id} className="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col sm:flex-row gap-6 items-start sm:items-center">
-                <div className="w-full sm:w-32 h-32 bg-gray-50 rounded-xl overflow-hidden flex-shrink-0">
-                  <img src={item.image} alt={item.name} className="w-full h-full object-cover mix-blend-multiply" />
-                </div>
+                
+                {/* 👉 ĐÃ FIX: Thêm .split('-')[0] để lấy ID gốc của sản phẩm */}
+                <Link to={`/product/${item._id.split('-')[0]}`} className="w-full sm:w-32 h-32 bg-gray-50 rounded-xl overflow-hidden flex-shrink-0 cursor-pointer group block">
+                  <img src={item.image} alt={item.name} className="w-full h-full object-cover mix-blend-multiply group-hover:scale-110 transition-transform duration-300" />
+                </Link>
                 
                 <div className="flex-1 w-full">
                   <div className="flex justify-between items-start">
                     <div>
-                      <h3 className="text-lg font-bold text-gray-900 line-clamp-2"><Link to={`/product/${item._id}`}>{item.name}</Link></h3>
+                      <h3 className="text-lg font-bold text-gray-900 line-clamp-2">
+                        {/* 👉 ĐÃ FIX: Thêm .split('-')[0] để lấy ID gốc của sản phẩm */}
+                        <Link to={`/product/${item._id.split('-')[0]}`} className="hover:text-blue-600 transition-colors">
+                          {item.name}
+                        </Link>
+                      </h3>
                       {item.variant && <p className="text-sm text-gray-500 mt-1">Phân loại: {item.variant}</p>}
                     </div>
                     <button onClick={() => removeFromCart(item._id)} className="text-gray-400 hover:text-red-500 transition p-2 bg-gray-50 rounded-full">

@@ -1,41 +1,35 @@
-import { FiTruck, FiShield, FiRefreshCw, FiHeadphones } from 'react-icons/fi';
+// src/components/TrustBadges.jsx
+import { FiCheckCircle, FiShield, FiPackage, FiRefreshCw } from 'react-icons/fi';
 
-const features = [
-  {
-    icon: <FiTruck size={32} className="text-blue-500" />,
-    title: 'Miễn phí vận chuyển',
-    description: 'Cho mọi đơn hàng từ 500k',
+const badges = [
+  { 
+    icon: <FiCheckCircle className="w-6 h-6 text-blue-600" />, 
+    title: "Cam kết 100% chính hãng" 
   },
-  {
-    icon: <FiShield size={32} className="text-teal-500" />,
-    title: 'Thanh toán bảo mật',
-    description: 'Mã hóa 100% an toàn',
+  { 
+    icon: <FiShield className="w-6 h-6 text-teal-500" />, 
+    title: "Hoàn tiền 111% nếu giả" 
   },
-  {
-    icon: <FiRefreshCw size={32} className="text-indigo-500" />,
-    title: 'Đổi trả dễ dàng',
-    description: 'Đổi trả miễn phí trong 30 ngày',
+  { 
+    icon: <FiPackage className="w-6 h-6 text-orange-500" />, 
+    title: "Mở hộp kiểm tra nhận hàng" 
   },
-  {
-    icon: <FiHeadphones size={32} className="text-purple-500" />,
-    title: 'Hỗ trợ 24/7',
-    description: 'Luôn sẵn sàng giải đáp',
+  { 
+    icon: <FiRefreshCw className="w-6 h-6 text-red-500" />, 
+    title: "Đổi trả trong 30 ngày" 
   },
 ];
 
 const TrustBadges = () => {
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-16">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
-        {features.map((item, index) => (
-          <div key={index} className="flex items-center space-x-4 p-4 hover:bg-gray-50 rounded-2xl transition-colors cursor-pointer group">
-            <div className="p-3 bg-gray-50 group-hover:bg-white rounded-full shadow-sm group-hover:shadow-md transition-all duration-300 group-hover:scale-110">
+    <div className="max-w-[1200px] mx-auto px-4 sm:px-0 py-4 hidden sm:block">
+      <div className="flex items-center justify-between">
+        {badges.map((item, index) => (
+          <div key={index} className="flex items-center gap-2.5 cursor-pointer hover:opacity-80 transition-opacity">
+            <div className="bg-gray-50 p-1.5 rounded-full">
               {item.icon}
             </div>
-            <div>
-              <h4 className="text-base font-bold text-gray-900">{item.title}</h4>
-              <p className="text-sm text-gray-500 mt-1">{item.description}</p>
-            </div>
+            <span className="text-sm font-medium text-gray-700">{item.title}</span>
           </div>
         ))}
       </div>
