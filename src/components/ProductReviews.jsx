@@ -12,6 +12,7 @@ const ProductReviews = () => {
 
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isUploading, setIsUploading] = useState(false); // 👉 State hiển thị đang tải ảnh
 
   // States: Form Thêm mới
   const [newRating, setNewRating] = useState(5);
@@ -49,6 +50,22 @@ const ProductReviews = () => {
     if (id) fetchReviews();
   }, [id]);
 
+  // ================= HÀM UPLOAD LÊN CLOUDINARY =================
+  const uploadMediaToCloudinary = async (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', 'shoppro_unsigned'); // Tên thẻ thông hành vừa tạo
+
+    try {
+      // Dùng auto upload để nó tự nhận diện là image hay video
+      const res = await axios.post('https://api.cloudinary.com/v1_1/dr27et5vv/auto/upload', formData);
+      return res.data.secure_url; // Trả về link xịn
+    } catch (error) {
+      console.error("Lỗi upload Cloudinary:", error);
+      throw new Error("Không thể tải file lên hệ thống.");
+    }
+  };
+
   // ================= XỬ LÝ FILE (THÊM & SỬA) =================
   const handleFileChange = (e, isEdit = false) => {
     const files = Array.from(e.target.files);
@@ -59,8 +76,8 @@ const ProductReviews = () => {
     }
 
     const newMedia = files.map(file => ({
-      file,
-      preview: URL.createObjectURL(file),
+      file, // File gốc để gửi lên Cloudinary
+      preview: URL.createObjectURL(file), // Link blob tạm để hiển thị trước
       type: file.type.startsWith('video/') ? 'video' : 'image'
     }));
 
@@ -80,11 +97,22 @@ const ProductReviews = () => {
     if (!newComment.trim()) return alert('Vui lòng nhập nội dung đánh giá!');
 
     try {
+      setIsUploading(true); // Bật hiệu ứng loading chờ up ảnh
+
+      // 1. Duyệt qua mảng file, up từng hình lên Cloudinary để lấy link xịn
+      const uploadedUrls = [];
+      for (const media of mediaFiles) {
+        const url = await uploadMediaToCloudinary(media.file);
+        uploadedUrls.push(url);
+      }
+
+      // 2. Gói data chứa link xịn gửi cho Backend
       const reviewData = {
         rating: newRating,
         comment: newComment,
-        images: mediaFiles.map(media => media.preview) // Thực tế cần upload Cloudinary trước
+        images: uploadedUrls 
       };
+      
       const config = { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } };
       await axios.post(`https://shoppro-backend-k01l.onrender.com/api/products/${id}/reviews`, reviewData, config);
       
@@ -94,7 +122,9 @@ const ProductReviews = () => {
       setMediaFiles([]);
       fetchReviews(); 
     } catch (error) {
-      alert(error.response?.data?.message || 'Không thể gửi đánh giá');
+      alert(error.response?.data?.message || error.message || 'Không thể gửi đánh giá');
+    } finally {
+      setIsUploading(false); // Tắt hiệu ứng loading
     }
   };
 
@@ -117,10 +147,10 @@ const ProductReviews = () => {
     setEditRating(review.rating);
     setEditComment(review.comment);
     
-    // Nạp ảnh cũ vào form sửa
+    // Nạp ảnh cũ vào form sửa (Những ảnh này ĐÃ CÓ link xịn Cloudinary, không có thuộc tính "file")
     const existingMedia = (review.images || []).map(url => ({
-      preview: url,
-      type: url.match(/\.(mp4|webm|mov)$/i) ? 'video' : 'image' // Đoán type dựa vào đuôi file
+      preview: url, 
+      type: url.match(/\.(mp4|webm|mov)$/i) ? 'video' : 'image' 
     }));
     setEditMediaFiles(existingMedia);
   };
@@ -128,19 +158,37 @@ const ProductReviews = () => {
   const handleSaveEdit = async (e, reviewId) => {
     e.preventDefault();
     if (editComment.trim() === '') return alert('Nội dung không được để trống!');
+    
     try {
+      setIsUploading(true);
+
+      const uploadedUrls = [];
+      for (const media of editMediaFiles) {
+        if (media.file) {
+          // Trường hợp 1: Đây là ảnh/video mới được thêm vào -> Phải up lên Cloudinary
+          const url = await uploadMediaToCloudinary(media.file);
+          uploadedUrls.push(url);
+        } else {
+          // Trường hợp 2: Đây là ảnh cũ từ Database -> Cứ giữ nguyên link cũ
+          uploadedUrls.push(media.preview);
+        }
+      }
+
       const reviewData = {
         rating: editRating,
         comment: editComment,
-        images: editMediaFiles.map(m => m.preview) 
+        images: uploadedUrls 
       };
+
       const config = { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } };
       await axios.put(`https://shoppro-backend-k01l.onrender.com/api/products/${id}/reviews/${reviewId}`, reviewData, config);
       
       setEditingId(null);
       fetchReviews();
     } catch (error) {
-      alert(error.response?.data?.message || 'Lỗi cập nhật đánh giá');
+      alert(error.response?.data?.message || error.message || 'Lỗi cập nhật đánh giá');
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -217,7 +265,9 @@ const ProductReviews = () => {
             </div>
 
             <div className="flex justify-end">
-              <button type="submit" className="px-8 py-3 bg-black text-white font-bold rounded-xl hover:bg-gray-900 transition">Gửi đánh giá</button>
+              <button disabled={isUploading} type="submit" className={`px-8 py-3 font-bold rounded-xl transition ${isUploading ? 'bg-gray-400 text-white cursor-not-allowed' : 'bg-black text-white hover:bg-gray-900'}`}>
+                {isUploading ? 'Đang xử lý file...' : 'Gửi đánh giá'}
+              </button>
             </div>
           </form>
         </div>
@@ -312,8 +362,10 @@ const ProductReviews = () => {
                         </div>
 
                         <div className="flex justify-end gap-3">
-                          <button type="button" onClick={() => setEditingId(null)} className="px-4 py-2 font-medium">Hủy</button>
-                          <button type="submit" className="bg-black text-white px-6 py-2 rounded-lg font-bold">Lưu thay đổi</button>
+                          <button disabled={isUploading} type="button" onClick={() => setEditingId(null)} className="px-4 py-2 font-medium">Hủy</button>
+                          <button disabled={isUploading} type="submit" className={`px-6 py-2 rounded-lg font-bold transition ${isUploading ? 'bg-gray-400 text-white cursor-not-allowed' : 'bg-black text-white'}`}>
+                            {isUploading ? 'Đang lưu...' : 'Lưu thay đổi'}
+                          </button>
                         </div>
                       </form>
                     </div>
