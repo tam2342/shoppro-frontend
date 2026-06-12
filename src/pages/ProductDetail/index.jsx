@@ -124,7 +124,8 @@ const ProductDetail = () => {
         <div className="lg:grid lg:grid-cols-12 lg:gap-16 xl:gap-24">
           
           {/* ================= CỘT TRÁI: HÌNH ẢNH ================= */}
-          <div className="lg:col-span-7 flex flex-col gap-6 sticky top-24 h-fit">
+          {/* ================= CỘT TRÁI: HÌNH ẢNH ================= */}
+<div className="lg:col-span-7 flex flex-col gap-6 lg:sticky lg:top-24 h-fit">
             <div className="w-full aspect-[4/3] sm:aspect-square bg-[#f9f9fb] rounded-2xl flex items-center justify-center p-8 lg:p-16 relative overflow-hidden group">
               <img 
                 src={activeImage} 

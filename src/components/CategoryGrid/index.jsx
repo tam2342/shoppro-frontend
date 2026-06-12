@@ -30,22 +30,25 @@ const CategoryGrid = () => {
       <div className="px-5 py-4 border-b border-gray-100">
         <h2 className="text-gray-500 font-medium uppercase tracking-wide">Danh Mục</h2>
       </div>
-      <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-7 border-l border-t border-gray-100">
+      
+      {/* 👉 ĐÃ SỬA CLASS Ở ĐÂY: Ép 2 hàng vuốt ngang trên Mobile, giữ nguyên dạng lưới 7 cột trên PC */}
+      <div className="grid grid-rows-2 grid-flow-col auto-cols-[100px] overflow-x-auto snap-x hide-scrollbar md:grid-rows-none md:grid-flow-row md:grid-cols-7 md:auto-cols-auto md:overflow-visible border-l border-t border-gray-100 [&::-webkit-scrollbar]:hidden">
+        
         {categories.map((cat, index) => (
           <Link 
             key={index} 
-            /* 👉 CHỖ NÀY ĐÃ ĐƯỢC SỬA ĐỂ TRUYỀN DỮ LIỆU SANG SEARCH PAGE */
             to={`/search?category=${encodeURIComponent(cat.name)}`} 
-            className="flex flex-col items-center justify-center p-4 border-r border-b border-gray-100 hover:shadow-[0_0_15px_rgba(0,0,0,0.08)] hover:z-10 bg-white transition-all group"
+            className="snap-start flex flex-col items-center justify-center p-3 md:p-4 border-r border-b border-gray-100 hover:shadow-[0_0_15px_rgba(0,0,0,0.08)] hover:z-10 bg-white transition-all group"
           >
-            <div className={`w-[60px] h-[60px] mb-3 rounded-2xl ${cat.bg} flex items-center justify-center shadow-inner group-hover:-translate-y-1 group-hover:shadow-lg transition-all duration-300`}>
+            <div className={`w-[50px] h-[50px] md:w-[60px] md:h-[60px] mb-2 md:mb-3 rounded-2xl ${cat.bg} flex items-center justify-center shadow-inner group-hover:-translate-y-1 group-hover:shadow-lg transition-all duration-300`}>
               {cat.icon}
             </div>
-            <span className="text-[13px] text-gray-700 text-center leading-tight line-clamp-2 min-h-[2rem] group-hover:text-blue-600 font-medium transition-colors">
+            <span className="text-[12px] md:text-[13px] text-gray-700 text-center leading-tight line-clamp-2 min-h-[2rem] group-hover:text-blue-600 font-medium transition-colors">
               {cat.name}
             </span>
           </Link>
         ))}
+
       </div>
     </div>
   );
