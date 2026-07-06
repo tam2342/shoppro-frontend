@@ -1,9 +1,45 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { FiUser, FiPackage, FiMapPin, FiHeart, FiSettings, FiLogOut, FiEdit2, FiPlus, FiTrash2 } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/useAuthStore';
+import Select from 'react-select';
 import UserOrderList from '../../components/UserOrderList';
 import UserWishlist from '../../components/UserWishlist';
+
+const VIETNAM_PROVINCES = [
+  { value: 'Hà Nội', label: 'Hà Nội' }, { value: 'TP. Hồ Chí Minh', label: 'TP. Hồ Chí Minh' },
+  { value: 'Đà Nẵng', label: 'Đà Nẵng' }, { value: 'Hải Phòng', label: 'Hải Phòng' },
+  { value: 'Cần Thơ', label: 'Cần Thơ' }, { value: 'An Giang', label: 'An Giang' },
+  { value: 'Bà Rịa - Vũng Tàu', label: 'Bà Rịa - Vũng Tàu' }, { value: 'Bắc Giang', label: 'Bắc Giang' },
+  { value: 'Bắc Kạn', label: 'Bắc Kạn' }, { value: 'Bạc Liêu', label: 'Bạc Liêu' },
+  { value: 'Bắc Ninh', label: 'Bắc Ninh' }, { value: 'Bến Tre', label: 'Bến Tre' },
+  { value: 'Bình Định', label: 'Bình Định' }, { value: 'Bình Dương', label: 'Bình Dương' },
+  { value: 'Bình Phước', label: 'Bình Phước' }, { value: 'Bình Thuận', label: 'Bình Thuận' },
+  { value: 'Cà Mau', label: 'Cà Mau' }, { value: 'Cao Bằng', label: 'Cao Bằng' },
+  { value: 'Đắk Lắk', label: 'Đắk Lắk' }, { value: 'Đắk Nông', label: 'Đắk Nông' },
+  { value: 'Điện Biên', label: 'Điện Biên' }, { value: 'Đồng Nai', label: 'Đồng Nai' },
+  { value: 'Đồng Tháp', label: 'Đồng Tháp' }, { value: 'Gia Lai', label: 'Gia Lai' },
+  { value: 'Hà Giang', label: 'Hà Giang' }, { value: 'Hà Nam', label: 'Hà Nam' },
+  { value: 'Hà Tĩnh', label: 'Hà Tĩnh' }, { value: 'Hải Dương', label: 'Hải Dương' },
+  { value: 'Hậu Giang', label: 'Hậu Giang' }, { value: 'Hòa Bình', label: 'Hòa Bình' },
+  { value: 'Hưng Yên', label: 'Hưng Yên' }, { value: 'Khánh Hòa', label: 'Khánh Hòa' },
+  { value: 'Kiên Giang', label: 'Kiên Giang' }, { value: 'Kon Tum', label: 'Kon Tum' },
+  { value: 'Lai Châu', label: 'Lai Châu' }, { value: 'Lâm Đồng', label: 'Lâm Đồng' },
+  { value: 'Lạng Sơn', label: 'Lạng Sơn' }, { value: 'Lào Cai', label: 'Lào Cai' },
+  { value: 'Long An', label: 'Long An' }, { value: 'Nam Định', label: 'Nam Định' },
+  { value: 'Nghệ An', label: 'Nghệ An' }, { value: 'Ninh Bình', label: 'Ninh Bình' },
+  { value: 'Ninh Thuận', label: 'Ninh Thuận' }, { value: 'Phú Thọ', label: 'Phú Thọ' },
+  { value: 'Quảng Bình', label: 'Quảng Bình' }, { value: 'Quảng Nam', label: 'Quảng Nam' },
+  { value: 'Quảng Ngãi', label: 'Quảng Ngãi' }, { value: 'Quảng Ninh', label: 'Quảng Ninh' },
+  { value: 'Quảng Trị', label: 'Quảng Trị' }, { value: 'Sóc Trăng', label: 'Sóc Trăng' },
+  { value: 'Sơn La', label: 'Sơn La' }, { value: 'Tây Ninh', label: 'Tây Ninh' },
+  { value: 'Thái Bình', label: 'Thái Bình' }, { value: 'Thái Nguyên', label: 'Thái Nguyên' },
+  { value: 'Thanh Hóa', label: 'Thanh Hóa' }, { value: 'Thừa Thiên Huế', label: 'Thừa Thiên Huế' },
+  { value: 'Tiền Giang', label: 'Tiền Giang' }, { value: 'Trà Vinh', label: 'Trà Vinh' },
+  { value: 'Tuyên Quang', label: 'Tuyên Quang' }, { value: 'Vĩnh Long', label: 'Vĩnh Long' },
+  { value: 'Vĩnh Phúc', label: 'Vĩnh Phúc' }, { value: 'Yên Bái', label: 'Yên Bái' },
+  { value: 'Phú Yên', label: 'Phú Yên' }
+];
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -19,7 +55,7 @@ const Profile = () => {
     name: '',
     phone: '',
     detail: '',
-    city: ''
+    city: null   // ← Sẽ lưu object từ react-select
   });
 
   // State cho đổi mật khẩu
@@ -29,6 +65,19 @@ const Profile = () => {
     newPassword: '',
     confirmPassword: ''
   });
+
+  // Load địa chỉ từ localStorage khi component mount
+  useEffect(() => {
+    const saved = localStorage.getItem('userAddresses');
+    if (saved) {
+      setAddresses(JSON.parse(saved));
+    }
+  }, []);
+
+  // Lưu địa chỉ vào localStorage mỗi khi addresses thay đổi
+  useEffect(() => {
+    localStorage.setItem('userAddresses', JSON.stringify(addresses));
+  }, [addresses]);
 
   const handleLogout = () => {
     logout();
@@ -60,11 +109,14 @@ const Profile = () => {
 
     const addressToAdd = {
       id: Date.now(),
-      ...newAddress
+      name: newAddress.name,
+      phone: newAddress.phone,
+      detail: newAddress.detail,
+      city: newAddress.city.value || newAddress.city
     };
 
     setAddresses([...addresses, addressToAdd]);
-    setNewAddress({ name: '', phone: '', detail: '', city: '' });
+    setNewAddress({ name: '', phone: '', detail: '', city: null });
     setShowAddAddress(false);
     alert("Đã thêm địa chỉ mới thành công!");
   };
@@ -97,8 +149,9 @@ const Profile = () => {
         <h1 className="text-3xl font-extrabold text-gray-900 mb-8">Tài khoản của tôi</h1>
 
         <div className="flex flex-col md:flex-row gap-8">
-          {/* Sidebar */}
+          {/* Sidebar giữ nguyên */}
           <div className="w-full md:w-72 flex-shrink-0">
+            {/* ... Sidebar code giữ nguyên như cũ ... */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden sticky top-24">
               <div className="p-6 border-b border-gray-100 flex items-center space-x-4 bg-gray-50">
                 <div className="w-14 h-14 rounded-full bg-blue-600 text-white flex items-center justify-center text-xl font-bold shadow-md uppercase">
@@ -143,7 +196,7 @@ const Profile = () => {
 
           {/* Main Content */}
           <div className="flex-1">
-            {/* Dashboard */}
+            {/* Dashboard giữ nguyên */}
             {activeTab === 'dashboard' && (
               <div className="space-y-6">
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
@@ -171,10 +224,7 @@ const Profile = () => {
               </div>
             )}
 
-            {/* Đơn hàng */}
             {activeTab === 'orders' && <UserOrderList />}
-
-            {/* Sản phẩm yêu thích */}
             {activeTab === 'wishlist' && <UserWishlist />}
 
             {/* ==================== SỔ ĐỊA CHỈ ==================== */}
@@ -260,12 +310,13 @@ const Profile = () => {
 
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1.5">Thành phố / Tỉnh <span className="text-red-500">*</span></label>
-                        <input 
-                          type="text" 
-                          placeholder="Ví dụ: TP. Hồ Chí Minh, Hà Nội, Đà Nẵng..." 
-                          className="w-full p-3.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                        <Select
+                          options={VIETNAM_PROVINCES}
                           value={newAddress.city}
-                          onChange={(e) => setNewAddress({...newAddress, city: e.target.value})}
+                          onChange={(selected) => setNewAddress({...newAddress, city: selected})}
+                          placeholder="Chọn Tỉnh/Thành phố..."
+                          isSearchable={true}
+                          className="text-sm"
                         />
                       </div>
                     </div>
@@ -280,7 +331,7 @@ const Profile = () => {
                       <button 
                         onClick={() => {
                           setShowAddAddress(false);
-                          setNewAddress({ name: '', phone: '', detail: '', city: '' });
+                          setNewAddress({ name: '', phone: '', detail: '', city: null });
                         }}
                         className="bg-gray-200 px-8 py-3 rounded-xl font-medium hover:bg-gray-300"
                       >
@@ -292,7 +343,7 @@ const Profile = () => {
               </div>
             )}
 
-            {/* Cài đặt tài khoản */}
+            {/* Cài đặt tài khoản giữ nguyên */}
             {activeTab === 'settings' && (
               <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
                 <h2 className="text-xl font-bold mb-6">Cài đặt tài khoản</h2>
