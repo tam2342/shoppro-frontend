@@ -12,22 +12,13 @@ const Profile = () => {
   const { user, logout } = useAuthStore();
 
   // State cho sổ địa chỉ
-  const [addresses, setAddresses] = useState([
-    {
-      id: 1,
-      name: user?.name || "Nguyễn Văn A",
-      phone: "0123456789",
-      address: "123 Đường ABC, Phường 1, Quận 1",
-      city: "TP. Hồ Chí Minh",
-      isDefault: true
-    }
-  ]);
+  const [addresses, setAddresses] = useState([]);
 
   const [showAddAddress, setShowAddAddress] = useState(false);
   const [newAddress, setNewAddress] = useState({
     name: '',
     phone: '',
-    address: '',
+    detail: '',
     city: ''
   });
 
@@ -62,34 +53,26 @@ const Profile = () => {
 
   // ==================== XỬ LÝ SỔ ĐỊA CHỈ ====================
   const addNewAddress = () => {
-    if (!newAddress.name || !newAddress.phone || !newAddress.address) {
-      alert("Vui lòng điền đầy đủ thông tin địa chỉ");
+    if (!newAddress.name || !newAddress.phone || !newAddress.detail || !newAddress.city) {
+      alert("Vui lòng điền đầy đủ thông tin địa chỉ!");
       return;
     }
 
     const addressToAdd = {
       id: Date.now(),
-      ...newAddress,
-      isDefault: addresses.length === 0
+      ...newAddress
     };
 
     setAddresses([...addresses, addressToAdd]);
-    setNewAddress({ name: '', phone: '', address: '', city: '' });
+    setNewAddress({ name: '', phone: '', detail: '', city: '' });
     setShowAddAddress(false);
-    alert("Đã thêm địa chỉ mới!");
+    alert("Đã thêm địa chỉ mới thành công!");
   };
 
   const deleteAddress = (id) => {
     if (window.confirm("Bạn có chắc muốn xóa địa chỉ này?")) {
       setAddresses(addresses.filter(addr => addr.id !== id));
     }
-  };
-
-  const setDefaultAddress = (id) => {
-    setAddresses(addresses.map(addr => ({
-      ...addr,
-      isDefault: addr.id === id
-    })));
   };
 
   // ==================== ĐỔI MẬT KHẨU ====================
@@ -103,7 +86,6 @@ const Profile = () => {
       return;
     }
 
-    // TODO: Gọi API đổi mật khẩu ở đây
     alert("✅ Đổi mật khẩu thành công! (Chưa kết nối API)");
     setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
     setShowChangePassword(false);
@@ -115,7 +97,7 @@ const Profile = () => {
         <h1 className="text-3xl font-extrabold text-gray-900 mb-8">Tài khoản của tôi</h1>
 
         <div className="flex flex-col md:flex-row gap-8">
-          {/* Sidebar Menu */}
+          {/* Sidebar */}
           <div className="w-full md:w-72 flex-shrink-0">
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden sticky top-24">
               <div className="p-6 border-b border-gray-100 flex items-center space-x-4 bg-gray-50">
@@ -164,7 +146,6 @@ const Profile = () => {
             {/* Dashboard */}
             {activeTab === 'dashboard' && (
               <div className="space-y-6">
-                {/* ... giữ nguyên phần dashboard cũ ... */}
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                   <div className="px-6 py-5 border-b border-gray-100 flex justify-between items-center">
                     <h2 className="text-lg font-bold text-gray-900">Thông tin cá nhân</h2>
@@ -200,87 +181,108 @@ const Profile = () => {
             {activeTab === 'address' && (
               <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
                 <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-xl font-bold">Sổ địa chỉ</h2>
+                  <h2 className="text-xl font-bold">Sổ địa chỉ ({addresses.length})</h2>
                   <button 
                     onClick={() => setShowAddAddress(true)}
-                    className="bg-blue-600 text-white px-5 py-2 rounded-xl flex items-center gap-2 hover:bg-blue-700"
+                    className="bg-blue-600 text-white px-5 py-2.5 rounded-xl flex items-center gap-2 hover:bg-blue-700 transition"
                   >
-                    <FiPlus /> Thêm địa chỉ mới
+                    <FiPlus size={18} /> Thêm địa chỉ mới
                   </button>
                 </div>
 
-                <div className="space-y-4">
-                  {addresses.map((addr) => (
-                    <div key={addr.id} className="border rounded-2xl p-5 hover:border-blue-300 transition-all">
-                      <div className="flex justify-between">
-                        <div>
-                          <p className="font-semibold">{addr.name}</p>
-                          <p className="text-gray-600">{addr.phone}</p>
-                          <p className="text-gray-600 mt-1">{addr.address}</p>
-                          <p className="text-gray-600">{addr.city}</p>
-                        </div>
-                        <div className="flex flex-col gap-2">
-                          {addr.isDefault && (
-                            <span className="text-xs bg-green-100 text-green-700 px-3 py-1 rounded-full self-start">Mặc định</span>
-                          )}
-                          <button 
-                            onClick={() => setDefaultAddress(addr.id)}
-                            className="text-blue-600 text-sm hover:underline"
-                          >
-                            Đặt làm mặc định
-                          </button>
+                {addresses.length === 0 ? (
+                  <div className="text-center py-16 text-gray-500">
+                    <FiMapPin size={48} className="mx-auto mb-4 text-gray-300" />
+                    <p>Bạn chưa có địa chỉ nào</p>
+                    <p className="text-sm mt-1">Hãy thêm địa chỉ giao hàng để thanh toán nhanh hơn</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {addresses.map((addr) => (
+                      <div key={addr.id} className="border rounded-2xl p-6 hover:border-gray-400 transition-all">
+                        <div className="flex justify-between">
+                          <div className="space-y-1.5">
+                            <p className="font-semibold text-lg">{addr.name}</p>
+                            <p className="text-gray-600">{addr.phone}</p>
+                            <p className="text-gray-600">{addr.detail}</p>
+                            <p className="text-gray-600">{addr.city}</p>
+                          </div>
                           <button 
                             onClick={() => deleteAddress(addr.id)}
-                            className="text-red-500 hover:text-red-700"
+                            className="text-red-500 hover:text-red-700 self-start"
                           >
-                            <FiTrash2 />
+                            <FiTrash2 size={20} />
                           </button>
                         </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
 
-                {/* Form thêm địa chỉ mới */}
+                {/* Form thêm địa chỉ */}
                 {showAddAddress && (
-                  <div className="mt-8 border-t pt-6">
-                    <h3 className="font-bold mb-4">Thêm địa chỉ mới</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <input 
-                        type="text" placeholder="Họ tên" 
-                        className="p-3 border rounded-xl" 
-                        value={newAddress.name}
-                        onChange={(e) => setNewAddress({...newAddress, name: e.target.value})}
-                      />
-                      <input 
-                        type="text" placeholder="Số điện thoại" 
-                        className="p-3 border rounded-xl" 
-                        value={newAddress.phone}
-                        onChange={(e) => setNewAddress({...newAddress, phone: e.target.value})}
-                      />
-                      <input 
-                        type="text" placeholder="Địa chỉ chi tiết" 
-                        className="p-3 border rounded-xl md:col-span-2" 
-                        value={newAddress.address}
-                        onChange={(e) => setNewAddress({...newAddress, address: e.target.value})}
-                      />
-                      <input 
-                        type="text" placeholder="Tỉnh/Thành phố" 
-                        className="p-3 border rounded-xl" 
-                        value={newAddress.city}
-                        onChange={(e) => setNewAddress({...newAddress, city: e.target.value})}
-                      />
+                  <div className="mt-10 border-t pt-8">
+                    <h3 className="font-bold text-lg mb-6">Thêm địa chỉ mới</h3>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1.5">Họ và tên <span className="text-red-500">*</span></label>
+                        <input 
+                          type="text" 
+                          placeholder="Nhập họ và tên" 
+                          className="w-full p-3.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                          value={newAddress.name}
+                          onChange={(e) => setNewAddress({...newAddress, name: e.target.value})}
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1.5">Số điện thoại <span className="text-red-500">*</span></label>
+                        <input 
+                          type="tel" 
+                          placeholder="Nhập số điện thoại" 
+                          className="w-full p-3.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                          value={newAddress.phone}
+                          onChange={(e) => setNewAddress({...newAddress, phone: e.target.value})}
+                        />
+                      </div>
+
+                      <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-1.5">Địa chỉ cụ thể <span className="text-red-500">*</span></label>
+                        <input 
+                          type="text" 
+                          placeholder="Số nhà, tên đường, phường/xã..." 
+                          className="w-full p-3.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                          value={newAddress.detail}
+                          onChange={(e) => setNewAddress({...newAddress, detail: e.target.value})}
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1.5">Thành phố / Tỉnh <span className="text-red-500">*</span></label>
+                        <input 
+                          type="text" 
+                          placeholder="Ví dụ: TP. Hồ Chí Minh, Hà Nội, Đà Nẵng..." 
+                          className="w-full p-3.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                          value={newAddress.city}
+                          onChange={(e) => setNewAddress({...newAddress, city: e.target.value})}
+                        />
+                      </div>
                     </div>
-                    <div className="flex gap-3 mt-6">
+
+                    <div className="flex gap-4 mt-8">
                       <button 
                         onClick={addNewAddress}
-                        className="bg-blue-600 text-white px-6 py-3 rounded-xl"
+                        className="bg-blue-600 text-white px-8 py-3 rounded-xl font-medium hover:bg-blue-700"
                       >
                         Lưu địa chỉ
                       </button>
                       <button 
-                        onClick={() => setShowAddAddress(false)}
-                        className="bg-gray-200 px-6 py-3 rounded-xl"
+                        onClick={() => {
+                          setShowAddAddress(false);
+                          setNewAddress({ name: '', phone: '', detail: '', city: '' });
+                        }}
+                        className="bg-gray-200 px-8 py-3 rounded-xl font-medium hover:bg-gray-300"
                       >
                         Hủy
                       </button>
@@ -290,12 +292,12 @@ const Profile = () => {
               </div>
             )}
 
-            {/* ==================== CÀI ĐẶT TÀI KHOẢN ==================== */}
+            {/* Cài đặt tài khoản */}
             {activeTab === 'settings' && (
               <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
                 <h2 className="text-xl font-bold mb-6">Cài đặt tài khoản</h2>
 
-                <div className="border rounded-2xl p-6 mb-8">
+                <div className="border rounded-2xl p-6">
                   <h3 className="font-semibold mb-4">Đổi mật khẩu</h3>
                   <button 
                     onClick={() => setShowChangePassword(!showChangePassword)}
@@ -305,7 +307,7 @@ const Profile = () => {
                   </button>
 
                   {showChangePassword && (
-                    <div className="mt-6 space-y-4">
+                    <div className="mt-6 space-y-4 max-w-md">
                       <input 
                         type="password" 
                         placeholder="Mật khẩu hiện tại" 
@@ -335,11 +337,6 @@ const Profile = () => {
                       </button>
                     </div>
                   )}
-                </div>
-
-                {/* Phần OTP sẽ thêm sau */}
-                <div className="text-sm text-gray-500">
-                  Tính năng xác thực OTP bằng email sẽ được bổ sung sau.
                 </div>
               </div>
             )}
