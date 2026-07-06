@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Select from 'react-select';
@@ -54,41 +54,8 @@ const Checkout = () => {
     city: null 
   });
 
-  // ==================== THÊM PHẦN CHỌN SỔ ĐỊA CHỈ ====================
-  const [savedAddresses, setSavedAddresses] = useState([]);
-  const [selectedAddressId, setSelectedAddressId] = useState(null);
-
   const totalAmount = cart.reduce((total, item) => total + (item.price * item.quantity), 0);
   const shippingFee = totalAmount > 0 ? 50000 : 0;
-
-  // Lấy danh sách địa chỉ đã lưu
-  useEffect(() => {
-    const fetchSavedAddresses = async () => {
-      if (!user?.token) return;
-      try {
-        const { data } = await axios.get(
-          'https://shoppro-backend-k01l.onrender.com/api/users/addresses',
-          { headers: { Authorization: `Bearer ${user.token}` } }
-        );
-        setSavedAddresses(data);
-      } catch (error) {
-        console.log("Không lấy được sổ địa chỉ hoặc chưa có địa chỉ nào");
-      }
-    };
-
-    fetchSavedAddresses();
-  }, [user]);
-
-  // Khi chọn địa chỉ từ sổ → tự động điền form
-  const handleSelectSavedAddress = (addr) => {
-    setSelectedAddressId(addr._id || addr.id);
-    setShippingAddress({
-      fullName: addr.name || addr.fullName || '',
-      phone: addr.phone || '',
-      address: addr.detail || addr.address || '',
-      city: VIETNAM_PROVINCES.find(p => p.value === (addr.city || addr.province)) || null
-    });
-  };
 
   const handlePlaceOrder = async (e) => {
     e.preventDefault(); 
@@ -145,6 +112,7 @@ const Checkout = () => {
         clearCart(); 
         window.location.href = vnpayData.url; 
       } else if (paymentMethod === 'PAYPAL') {
+        // 👉 ĐÃ FIX: Mở khóa đoạn code gọi API PayPal và chuyển hướng
         const { data: paypalData } = await axios.post(`https://shoppro-backend-k01l.onrender.com/api/orders/${data._id}/paypal`, {}, config);
         clearCart();
         window.location.href = paypalData.url;
@@ -195,42 +163,6 @@ const Checkout = () => {
             
             <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-sm border border-gray-100">
               <h2 className="text-xl font-bold text-gray-900 mb-6">Thông tin giao hàng</h2>
-
-              {/* ==================== PHẦN CHỌN SỔ ĐỊA CHỈ ==================== */}
-              {savedAddresses.length > 0 && (
-                <div className="mb-8">
-                  <label className="block text-sm font-medium text-gray-700 mb-3">
-                    Chọn từ sổ địa chỉ đã lưu
-                  </label>
-                  <div className="grid grid-cols-1 gap-3 max-h-60 overflow-y-auto pr-2">
-                    {savedAddresses.map((addr) => (
-                      <div 
-                        key={addr._id || addr.id}
-                        onClick={() => handleSelectSavedAddress(addr)}
-                        className={`p-4 border rounded-xl cursor-pointer transition-all hover:border-blue-400 ${
-                          selectedAddressId === (addr._id || addr.id) 
-                            ? 'border-blue-600 bg-blue-50' 
-                            : 'border-gray-200 hover:bg-gray-50'
-                        }`}
-                      >
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <p className="font-medium">{addr.name || addr.fullName}</p>
-                            <p className="text-sm text-gray-600">{addr.phone}</p>
-                            <p className="text-sm text-gray-600 mt-1">{addr.detail || addr.address}</p>
-                            <p className="text-sm text-gray-600">{addr.city}</p>
-                          </div>
-                          {selectedAddressId === (addr._id || addr.id) && (
-                            <span className="text-blue-600 text-sm font-medium mt-1">✓ Đang chọn</span>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  <p className="text-xs text-gray-500 mt-2">Hoặc nhập thông tin giao hàng mới bên dưới</p>
-                </div>
-              )}
-
               <form id="checkout-form" onSubmit={handlePlaceOrder} className="space-y-5">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <div>
@@ -288,17 +220,80 @@ const Checkout = () => {
               </form>
             </div>
 
-            {/* Phần phương thức thanh toán giữ nguyên như code gốc của bạn */}
             <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-sm border border-gray-100">
               <h2 className="text-xl font-bold text-gray-900 mb-6">Phương thức thanh toán</h2>
               <div className="space-y-4">
-                {/* Các label thanh toán COD, VNPAY, PAYPAL giữ nguyên như code bạn gửi */}
-                {/* ... (giữ nguyên toàn bộ phần paymentMethod) ... */}
+                
+                {/* Thanh toán COD */}
+                <label className={`flex items-start p-4 border-2 rounded-xl cursor-pointer transition-all duration-300 ${paymentMethod === 'COD' ? 'border-blue-600 bg-blue-50 shadow-sm' : 'border-gray-200 hover:bg-gray-50'}`}>
+                  <input 
+                    type="radio" 
+                    name="payment" 
+                    value="COD"
+                    checked={paymentMethod === 'COD'}
+                    onChange={(e) => setPaymentMethod(e.target.value)}
+                    className="mt-1 w-5 h-5 text-blue-600 border-gray-300 focus:ring-blue-500" 
+                  />
+                  <div className="ml-4">
+                    <span className={`block font-bold ${paymentMethod === 'COD' ? 'text-blue-900' : 'text-gray-900'}`}>Thanh toán khi nhận hàng (COD)</span>
+                    <span className="block text-sm text-gray-500 mt-1">Thanh toán bằng tiền mặt khi shipper giao hàng tới.</span>
+                  </div>
+                </label>
+
+                {/* Thanh toán VNPAY */}
+                <label className={`flex items-start p-4 border-2 rounded-xl cursor-pointer transition-all duration-300 ${paymentMethod === 'VNPAY' ? 'border-blue-600 bg-blue-50 shadow-sm' : 'border-gray-200 hover:bg-gray-50'}`}>
+                  <input 
+                    type="radio" 
+                    name="payment" 
+                    value="VNPAY"
+                    checked={paymentMethod === 'VNPAY'}
+                    onChange={(e) => setPaymentMethod(e.target.value)}
+                    className="mt-1 w-5 h-5 text-blue-600 border-gray-300 focus:ring-blue-500" 
+                  />
+                  <div className="ml-4 flex-1">
+                    <span className={`block font-bold ${paymentMethod === 'VNPAY' ? 'text-blue-900' : 'text-gray-900'}`}>Chuyển khoản nội địa (VNPAY)</span>
+                    <span className="block text-sm text-gray-500 mt-1">Hỗ trợ quét mã QR, thẻ ATM, Visa/Mastercard phát hành tại Việt Nam.</span>
+                    
+                    {paymentMethod === 'VNPAY' && (
+                      <div className="mt-3 p-3 bg-blue-100/50 rounded-lg border border-blue-200 animate-fade-in-up">
+                        <p className="text-sm text-blue-700 font-medium flex items-center">
+                          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                          Hệ thống sẽ chuyển hướng tới cổng thanh toán VNPAY an toàn.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </label>
+
+                {/* Thanh toán Quốc tế (PayPal/Stripe) */}
+                <label className={`flex items-start p-4 border-2 rounded-xl cursor-pointer transition-all duration-300 ${paymentMethod === 'PAYPAL' ? 'border-blue-600 bg-blue-50 shadow-sm' : 'border-gray-200 hover:bg-gray-50'}`}>
+                  <input 
+                    type="radio" 
+                    name="payment" 
+                    value="PAYPAL"
+                    checked={paymentMethod === 'PAYPAL'}
+                    onChange={(e) => setPaymentMethod(e.target.value)}
+                    className="mt-1 w-5 h-5 text-blue-600 border-gray-300 focus:ring-blue-500" 
+                  />
+                  <div className="ml-4 flex-1">
+                    <span className={`block font-bold ${paymentMethod === 'PAYPAL' ? 'text-blue-900' : 'text-gray-900'}`}>Thanh toán quốc tế (PayPal / Thẻ tín dụng)</span>
+                    <span className="block text-sm text-gray-500 mt-1">Giao dịch an toàn qua cổng thanh toán quốc tế dành cho khách hàng nước ngoài.</span>
+                    
+                    {paymentMethod === 'PAYPAL' && (
+                      <div className="mt-3 p-3 bg-blue-100/50 rounded-lg border border-blue-200 animate-fade-in-up">
+                        <p className="text-sm text-blue-700 font-medium flex items-center">
+                          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                          Tỉ giá quy đổi sẽ được áp dụng theo chuẩn quốc tế tại thời điểm thanh toán.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </label>
+
               </div>
             </div>
           </div>
 
-          {/* Phần tóm tắt đơn hàng bên phải giữ nguyên như code gốc */}
           <div className="lg:col-span-5 w-full">
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-8 sticky top-24">
               <h2 className="text-lg font-bold text-gray-900 mb-6 border-b border-gray-100 pb-4">Đơn hàng của bạn</h2>
