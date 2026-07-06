@@ -38,7 +38,7 @@ const HeroSlider = () => {
             style={{ transform: `translateX(-${current * 100}%)` }}
           >
             {banners.map((img, index) => (
-              <Link key={index} to="/promotions" className="w-full h-full flex-shrink-0 block">
+              <Link key={index}  className="w-full h-full flex-shrink-0 block">
                 <img src={img} alt={`Banner ${index}`} className="w-full h-full object-cover" />
               </Link>
             ))}
