@@ -66,7 +66,7 @@ const HeroSlider = () => {
         {/* Side Banners (Chiếm 25% chiều rộng trên PC) */}
         <div className="w-full md:w-[25%] flex flex-col gap-3 h-[400px] lg:h-[450px] hidden md:flex">
           {sideBanners.map((img, index) => (
-            <Link key={index} to="/promotions" className="h-[calc(50%-6px)] rounded-lg overflow-hidden block hover:opacity-90 transition-opacity bg-gray-200 shadow-sm">
+            <Link key={index}  className="h-[calc(50%-6px)] rounded-lg overflow-hidden block hover:opacity-90 transition-opacity bg-gray-200 shadow-sm">
               <img src={img} alt="Side Banner" className="w-full h-full object-cover" />
             </Link>
           ))}

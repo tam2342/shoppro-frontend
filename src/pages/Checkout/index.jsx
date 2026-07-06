@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Select from 'react-select';
@@ -53,6 +53,42 @@ const Checkout = () => {
     address: '',
     city: null 
   });
+
+  // State quản lý danh sách sổ địa chỉ từ Profile
+  const [savedAddresses, setSavedAddresses] = useState([]);
+  const [selectedAddressId, setSelectedAddressId] = useState('');
+
+  // Lấy sổ địa chỉ từ localStorage khi trang thanh toán được tải
+  useEffect(() => {
+    const saved = localStorage.getItem('userAddresses');
+    if (saved) {
+      setSavedAddresses(JSON.parse(saved));
+    }
+  }, []);
+
+  // Xử lý sự kiện khi chọn một địa chỉ có sẵn
+  const handleSelectSavedAddress = (e) => {
+    const addrId = e.target.value;
+    setSelectedAddressId(addrId);
+
+    if (!addrId) {
+      // Nếu chọn nhập thủ công (địa chỉ mới) -> Xóa trắng form
+      setShippingAddress({ fullName: '', phone: '', address: '', city: null });
+      return;
+    }
+
+    // Tìm địa chỉ tương ứng trong danh sách
+    const selected = savedAddresses.find(addr => addr.id === Number(addrId));
+    if (selected) {
+      setShippingAddress({
+        fullName: selected.name,
+        phone: selected.phone,
+        address: selected.detail,
+        // Chuyển chuỗi text 'Thành phố' từ Sổ địa chỉ thành Object {value, label} cho react-select
+        city: selected.city ? { value: selected.city, label: selected.city } : null
+      });
+    }
+  };
 
   const totalAmount = cart.reduce((total, item) => total + (item.price * item.quantity), 0);
   const shippingFee = totalAmount > 0 ? 50000 : 0;
@@ -112,7 +148,6 @@ const Checkout = () => {
         clearCart(); 
         window.location.href = vnpayData.url; 
       } else if (paymentMethod === 'PAYPAL') {
-        // 👉 ĐÃ FIX: Mở khóa đoạn code gọi API PayPal và chuyển hướng
         const { data: paypalData } = await axios.post(`https://shoppro-backend-k01l.onrender.com/api/orders/${data._id}/paypal`, {}, config);
         clearCart();
         window.location.href = paypalData.url;
@@ -163,7 +198,30 @@ const Checkout = () => {
             
             <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-sm border border-gray-100">
               <h2 className="text-xl font-bold text-gray-900 mb-6">Thông tin giao hàng</h2>
+              
               <form id="checkout-form" onSubmit={handlePlaceOrder} className="space-y-5">
+                
+                {/* 🚀 ĐOẠN BỔ SUNG: Dropdown chọn nhanh từ sổ địa chỉ */}
+                {savedAddresses.length > 0 && (
+                  <div className="p-4 bg-blue-50/50 rounded-2xl border border-dashed border-blue-200 mb-6">
+                    <label className="block text-sm font-semibold text-blue-900 mb-2">
+                      Chọn từ sổ địa chỉ của bạn
+                    </label>
+                    <select
+                      value={selectedAddressId}
+                      onChange={handleSelectSavedAddress}
+                      className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none transition bg-white text-sm font-medium text-gray-700"
+                    >
+                      <option value="">-- Nhập địa chỉ mới / Tùy chỉnh thủ công --</option>
+                      {savedAddresses.map((addr) => (
+                        <option key={addr.id} value={addr.id}>
+                          {addr.name} - {addr.phone} ({addr.detail}, {addr.city})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Họ và tên</label>
@@ -265,7 +323,7 @@ const Checkout = () => {
                   </div>
                 </label>
 
-                {/* Thanh toán Quốc tế (PayPal/Stripe) */}
+                {/* Thanh toán Quốc tế (PayPal) */}
                 <label className={`flex items-start p-4 border-2 rounded-xl cursor-pointer transition-all duration-300 ${paymentMethod === 'PAYPAL' ? 'border-blue-600 bg-blue-50 shadow-sm' : 'border-gray-200 hover:bg-gray-50'}`}>
                   <input 
                     type="radio" 
