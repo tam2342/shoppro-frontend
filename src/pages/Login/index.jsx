@@ -4,7 +4,7 @@ import { FiMail, FiLock, FiArrowRight } from 'react-icons/fi';
 import { FcGoogle } from 'react-icons/fc';
 import axios from 'axios';
 import { useAuthStore } from '../../store/useAuthStore';
-import { useGoogleLogin } from '@react-oauth/google'; // 👉 ĐÃ THÊM: Import thư viện Google
+import { useGoogleLogin } from '@react-oauth/google';
 
 const Login = () => {
   const login = useAuthStore((state) => state.login);
@@ -17,11 +17,16 @@ const Login = () => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  // ==================== THÊM STATE CHO 2FA ====================
+  const [stepOTP, setStepOTP] = useState(false);
+  const [userIdFor2FA, setUserIdFor2FA] = useState('');
+  const [otpCode, setOtpCode] = useState('');
+
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // Hàm xử lý logic gọi API Đăng nhập truyền thống
+  // ==================== ĐĂNG NHẬP THÔNG THƯỜNG + 2FA ====================
   const handleLogin = async (e) => {
     e.preventDefault(); 
     setError('');
@@ -33,23 +38,52 @@ const Login = () => {
         password: formData.password
       });
 
-      login(response.data);
-      navigate('/');
+      // Nếu backend yêu cầu OTP (2FA được bật)
+      if (response.data.requireOTP) {
+        setUserIdFor2FA(response.data.userId);
+        setStepOTP(true);
+        setError(''); // xóa lỗi cũ
+        alert('🔒 Vui lòng kiểm tra email để lấy mã OTP xác thực!');
+      } else {
+        // Đăng nhập bình thường
+        login(response.data);
+        navigate('/');
+      }
     } catch (err) {
-      setError(err.response?.data?.message || 'Có lỗi xảy ra khi kết nối tới Server');
+      setError(err.response?.data?.message || 'Email hoặc mật khẩu không chính xác');
     } finally {
       setIsLoading(false);
     }
   };
 
-  // 👉 ĐÃ THÊM: Hàm xử lý Đăng nhập bằng Google
+  // ==================== XÁC THỰC MÃ OTP ====================
+  const handleVerifyOtp = async (e) => {
+    e.preventDefault();
+    setError('');
+    setIsLoading(true);
+
+    try {
+      const response = await axios.post('https://shoppro-backend-k01l.onrender.com/api/auth/verify-otp', {
+        userId: userIdFor2FA,
+        otp: otpCode
+      });
+
+      login(response.data);
+      navigate('/');
+    } catch (err) {
+      setError(err.response?.data?.message || 'Mã OTP không đúng hoặc đã hết hạn');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // ==================== ĐĂNG NHẬP GOOGLE (GỮI NGUYÊN) ====================
   const loginWithGoogle = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
       try {
         setIsLoading(true);
         setError('');
         
-        // 👉 ĐÃ SỬA: Phải trỏ về localhost:5000 để gọi cái code Backend mới viết ở dưới máy!
         const response = await axios.post('https://shoppro-backend-k01l.onrender.com/api/auth/google', {
           access_token: tokenResponse.access_token
         });
@@ -58,14 +92,13 @@ const Login = () => {
         navigate('/');
       } catch (err) {
         console.error("Lỗi Google Login:", err);
-        setError(err.response?.data?.message || 'Xác thực Google thất bại trên Server!');
+        setError(err.response?.data?.message || 'Xác thực Google thất bại!');
       } finally {
         setIsLoading(false);
       }
     },
-    // ...
     onError: () => {
-      setError('Bạn đã hủy đăng nhập Google hoặc có sự cố xảy ra.');
+      setError('Bạn đã hủy đăng nhập Google hoặc có lỗi xảy ra.');
     }
   });
 
@@ -78,101 +111,142 @@ const Login = () => {
             <Link to="/" className="text-3xl font-extrabold text-blue-600 tracking-tight">
               ShopPro<span className="text-gray-900">.</span>
             </Link>
-            <h2 className="mt-8 text-3xl font-extrabold text-gray-900">Đăng nhập</h2>
+            <h2 className="mt-8 text-3xl font-extrabold text-gray-900">
+              {stepOTP ? 'Nhập mã xác thực' : 'Đăng nhập'}
+            </h2>
             <p className="mt-2 text-sm text-gray-600">
-              Chưa có tài khoản?{' '}
-              <Link to="/register" className="font-medium text-blue-600 hover:text-blue-500 transition">
-                Đăng ký ngay
-              </Link>
+              {stepOTP 
+                ? 'Chúng tôi đã gửi mã OTP về email của bạn.' 
+                : 'Chưa có tài khoản? '}
+              {!stepOTP && (
+                <Link to="/register" className="font-medium text-blue-600 hover:text-blue-500 transition">
+                  Đăng ký ngay
+                </Link>
+              )}
             </p>
           </div>
 
           <div className="mt-8">
-            <div className="mt-6">
-              <form onSubmit={handleLogin} className="space-y-6">
-                
-                {/* Khu vực hiển thị thông báo lỗi từ Server */}
-                {error && (
-                  <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-md animate-fade-in">
-                    <p className="text-sm text-red-700 font-medium">{error}</p>
-                  </div>
-                )}
-
-                <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                    Địa chỉ Email
-                  </label>
-                  <div className="mt-1 relative rounded-xl shadow-sm">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <FiMail className="text-gray-400" />
+            {/* ==================== FORM ĐĂNG NHẬP THÔNG THƯỜNG ==================== */}
+            {!stepOTP && (
+              <div className="mt-6">
+                <form onSubmit={handleLogin} className="space-y-6">
+                  {error && (
+                    <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-md">
+                      <p className="text-sm text-red-700 font-medium">{error}</p>
                     </div>
-                    <input
-                      id="email"
-                      name="email"
-                      type="email"
-                      autoComplete="email"
-                      required
-                      value={formData.email}
-                      onChange={handleChange}
-                      className="focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-xl py-3 border outline-none transition"
-                      placeholder="you@example.com"
-                    />
-                  </div>
-                </div>
+                  )}
 
-                <div>
-                  <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                    Mật khẩu
-                  </label>
-                  <div className="mt-1 relative rounded-xl shadow-sm">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <FiLock className="text-gray-400" />
-                    </div>
-                    <input
-                      id="password"
-                      name="password"
-                      type="password"
-                      autoComplete="current-password"
-                      required
-                      value={formData.password}
-                      onChange={handleChange}
-                      className="focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-xl py-3 border outline-none transition"
-                      placeholder="••••••••"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <input
-                      id="remember-me"
-                      name="remember-me"
-                      type="checkbox"
-                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded cursor-pointer"
-                    />
-                    <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900 cursor-pointer">
-                      Ghi nhớ đăng nhập
+                  <div>
+                    <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                      Địa chỉ Email
                     </label>
+                    <div className="mt-1 relative rounded-xl shadow-sm">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <FiMail className="text-gray-400" />
+                      </div>
+                      <input
+                        id="email"
+                        name="email"
+                        type="email"
+                        autoComplete="email"
+                        required
+                        value={formData.email}
+                        onChange={handleChange}
+                        className="focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-xl py-3 border outline-none transition"
+                        placeholder="you@example.com"
+                      />
+                    </div>
                   </div>
 
-                  <div className="text-sm">
-                    <a href="#" className="font-medium text-blue-600 hover:text-blue-500 transition">
-                      Quên mật khẩu?
-                    </a>
+                  <div>
+                    <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                      Mật khẩu
+                    </label>
+                    <div className="mt-1 relative rounded-xl shadow-sm">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <FiLock className="text-gray-400" />
+                      </div>
+                      <input
+                        id="password"
+                        name="password"
+                        type="password"
+                        autoComplete="current-password"
+                        required
+                        value={formData.password}
+                        onChange={handleChange}
+                        className="focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-xl py-3 border outline-none transition"
+                        placeholder="••••••••"
+                      />
+                    </div>
                   </div>
-                </div>
 
-                <div>
+                  <div>
+                    <button
+                      type="submit"
+                      disabled={isLoading}
+                      className={`w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-xl shadow-sm text-sm font-bold text-white ${isLoading ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'} focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors`}
+                    >
+                      {isLoading ? 'Đang xử lý...' : 'Đăng nhập'} <FiArrowRight className="ml-2" />
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+
+            {/* ==================== FORM NHẬP OTP ==================== */}
+            {stepOTP && (
+              <div className="mt-6">
+                <form onSubmit={handleVerifyOtp} className="space-y-6">
+                  {error && (
+                    <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-md">
+                      <p className="text-sm text-red-700 font-medium">{error}</p>
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Nhập mã OTP (6 số)
+                    </label>
+                    <input
+                      type="text"
+                      maxLength="6"
+                      value={otpCode}
+                      onChange={(e) => setOtpCode(e.target.value)}
+                      className="w-full text-center text-3xl tracking-widest p-6 border border-gray-300 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none"
+                      placeholder="123456"
+                      required
+                    />
+                    <p className="text-xs text-gray-500 mt-2 text-center">
+                      Mã OTP đã được gửi về email của bạn. Có hiệu lực trong 5 phút.
+                    </p>
+                  </div>
+
                   <button
                     type="submit"
                     disabled={isLoading}
-                    className={`w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-xl shadow-sm text-sm font-bold text-white ${isLoading ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'} focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors`}
+                    className="w-full bg-blue-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-blue-700 transition"
                   >
-                    {isLoading ? 'Đang xử lý...' : 'Đăng nhập'} <FiArrowRight className="ml-2" />
+                    {isLoading ? 'Đang xác thực...' : 'Xác nhận OTP'}
                   </button>
-                </div>
-              </form>
 
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setStepOTP(false);
+                      setOtpCode('');
+                      setError('');
+                    }}
+                    className="w-full text-gray-500 hover:text-gray-700 text-sm py-2"
+                  >
+                    Quay lại đăng nhập
+                  </button>
+                </form>
+              </div>
+            )}
+
+            {/* Google Login */}
+            {!stepOTP && (
               <div className="mt-8">
                 <div className="relative">
                   <div className="absolute inset-0 flex items-center">
@@ -184,7 +258,6 @@ const Login = () => {
                 </div>
 
                 <div className="mt-6">
-                  {/* 👉 ĐÃ THÊM: Gắn sự kiện onClick gọi hàm loginWithGoogle */}
                   <button 
                     type="button"
                     onClick={() => loginWithGoogle()}
@@ -196,12 +269,12 @@ const Login = () => {
                   </button>
                 </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Cột phải: Hình ảnh nghệ thuật */}
+      {/* Cột phải: Hình ảnh */}
       <div className="hidden lg:block relative w-0 flex-1 bg-gray-900">
         <img
           className="absolute inset-0 h-full w-full object-cover opacity-80 mix-blend-overlay"
