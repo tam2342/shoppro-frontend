@@ -27,29 +27,55 @@ const Login = () => {
   };
 
   // ==================== ĐĂNG NHẬP THÔNG THƯỜNG + 2FA ====================
+    // ==================== ĐĂNG NHẬP THÔNG THƯỜNG + 2FA ====================
   const handleLogin = async (e) => {
     e.preventDefault(); 
     setError('');
     setIsLoading(true);
 
     try {
+      console.log("Gửi request đăng nhập...");
+
       const response = await axios.post('https://shoppro-backend-k01l.onrender.com/api/auth/login', {
         email: formData.email,
         password: formData.password
       });
 
-      // Nếu backend yêu cầu OTP (2FA được bật)
+      console.log("Response từ server:", response.data); // Debug
+
       if (response.data.requireOTP) {
         setUserIdFor2FA(response.data.userId);
         setStepOTP(true);
         setError('');
+        alert('🔒 Vui lòng kiểm tra email để lấy mã OTP!');
       } else {
-        // Đăng nhập thành công bình thường
         login(response.data);
         navigate('/');
       }
     } catch (err) {
+      console.error("Lỗi đăng nhập:", err.response?.data || err);
       setError(err.response?.data?.message || 'Email hoặc mật khẩu không chính xác');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // ==================== XÁC THỰC OTP ====================
+  const handleVerifyOtp = async (e) => {
+    e.preventDefault();
+    setError('');
+    setIsLoading(true);
+
+    try {
+      const response = await axios.post('https://shoppro-backend-k01l.onrender.com/api/auth/verify-otp', {
+        userId: userIdFor2FA,
+        otp: otpCode
+      });
+
+      login(response.data);
+      navigate('/');
+    } catch (err) {
+      setError(err.response?.data?.message || 'Mã OTP không đúng hoặc đã hết hạn');
     } finally {
       setIsLoading(false);
     }
