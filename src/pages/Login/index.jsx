@@ -17,7 +17,7 @@ const Login = () => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  // ==================== THÊM STATE CHO 2FA ====================
+  // ==================== STATE CHO 2FA ====================
   const [stepOTP, setStepOTP] = useState(false);
   const [userIdFor2FA, setUserIdFor2FA] = useState('');
   const [otpCode, setOtpCode] = useState('');
@@ -42,10 +42,9 @@ const Login = () => {
       if (response.data.requireOTP) {
         setUserIdFor2FA(response.data.userId);
         setStepOTP(true);
-        setError(''); // xóa lỗi cũ
-        alert('🔒 Vui lòng kiểm tra email để lấy mã OTP xác thực!');
+        setError('');
       } else {
-        // Đăng nhập bình thường
+        // Đăng nhập thành công bình thường
         login(response.data);
         navigate('/');
       }
@@ -77,7 +76,7 @@ const Login = () => {
     }
   };
 
-  // ==================== ĐĂNG NHẬP GOOGLE (GỮI NGUYÊN) ====================
+  // ==================== ĐĂNG NHẬP GOOGLE ====================
   const loginWithGoogle = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
       try {
@@ -225,7 +224,7 @@ const Login = () => {
                   <button
                     type="submit"
                     disabled={isLoading}
-                    className="w-full bg-blue-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-blue-700 transition"
+                    className="w-full bg-blue-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-blue-700 transition disabled:bg-gray-400"
                   >
                     {isLoading ? 'Đang xác thực...' : 'Xác nhận OTP'}
                   </button>
@@ -239,13 +238,13 @@ const Login = () => {
                     }}
                     className="w-full text-gray-500 hover:text-gray-700 text-sm py-2"
                   >
-                    Quay lại đăng nhập
+                    ← Quay lại đăng nhập
                   </button>
                 </form>
               </div>
             )}
 
-            {/* Google Login */}
+            {/* Google Login - Chỉ hiển thị khi chưa vào bước OTP */}
             {!stepOTP && (
               <div className="mt-8">
                 <div className="relative">

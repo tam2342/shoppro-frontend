@@ -148,20 +148,34 @@ const Profile = () => {
 
   // ==================== XỬ LÝ 2FA (BỔ SUNG) ====================
   const handleToggle2FA = async () => {
-    try {
-      const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      const { data } = await axios.put(
-        'https://shoppro-backend-k01l.onrender.com/api/auth/toggle-2fa', 
-        {}, 
-        config
-      );
+  try {
+    const config = { 
+      headers: { 
+        Authorization: `Bearer ${user.token}` 
+      } 
+    };
 
-      setIs2FAEnabled(data.is2FAEnabled);
-      alert(data.message);
-    } catch (error) {
-      alert(error.response?.data?.message || 'Có lỗi xảy ra khi thay đổi 2FA');
-    }
-  };
+    console.log("Đang gọi API toggle 2FA..."); // Debug
+
+    const { data } = await axios.put(
+      'https://shoppro-backend-k01l.onrender.com/api/auth/toggle-2fa', 
+      {}, 
+      config
+    );
+
+    setIs2FAEnabled(data.is2FAEnabled);
+    alert(data.message || 'Cập nhật 2FA thành công');
+    
+  } catch (error) {
+    console.error("LỖI TOGGLE 2FA:", error.response?.data || error.message);
+    
+    const errorMsg = error.response?.data?.message || 
+                    error.message || 
+                    'Không thể thay đổi cài đặt 2FA. Vui lòng thử lại.';
+    
+    alert('❌ ' + errorMsg);
+  }
+};
 
   return (
     <div className="bg-gray-50 min-h-screen py-10">
