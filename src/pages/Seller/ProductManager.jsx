@@ -13,11 +13,11 @@ const ProductManager = () => {
   const [editingId, setEditingId] = useState(null);
 
   const [formData, setFormData] = useState({
-    name: '', 
-    price: '', 
-    description: '', 
-    category: 'Điện Thoại & Phụ Kiện', 
-    countInStock: 10, 
+    name: '',
+    price: '',
+    description: '',
+    category: 'Điện Thoại & Phụ Kiện',
+    countInStock: 10,
     images: []          // ← Đổi thành mảng để hỗ trợ nhiều ảnh
   });
 
@@ -35,13 +35,13 @@ const ProductManager = () => {
 
   const handleAddNew = () => {
     setEditingId(null);
-    setFormData({ 
-      name: '', 
-      price: '', 
-      description: '', 
-      category: 'Điện Thoại & Phụ Kiện', 
-      countInStock: 10, 
-      images: [] 
+    setFormData({
+      name: '',
+      price: '',
+      description: '',
+      category: 'Điện Thoại & Phụ Kiện',
+      countInStock: 10,
+      images: []
     });
     setIsModalOpen(true);
   };
@@ -74,11 +74,11 @@ const ProductManager = () => {
 
         const config = { headers: { 'Content-Type': 'multipart/form-data' } };
         const { data } = await axios.post(
-          'https://shoppro-backend-k01l.onrender.com/api/upload', 
-          uploadData, 
+          'https://shoppro-backend-k01l.onrender.com/api/upload',
+          uploadData,
           config
         );
-        
+
         uploadedUrls.push(data.imageUrl);
       }
 
@@ -113,8 +113,8 @@ const ProductManager = () => {
     try {
       setLoading(true);
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      
-      const productData = { 
+
+      const productData = {
         ...formData,
         brand: "Khác"
       };
@@ -128,11 +128,11 @@ const ProductManager = () => {
       }
 
       setIsModalOpen(false);
-      fetchMyProducts(); 
+      fetchMyProducts();
     } catch (error) {
       alert("Lỗi: " + (error.response?.data?.message || error.message));
-    } finally { 
-      setLoading(false); 
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -142,8 +142,8 @@ const ProductManager = () => {
         const config = { headers: { Authorization: `Bearer ${user.token}` } };
         await axios.delete(`https://shoppro-backend-k01l.onrender.com/api/products/${id}`, config);
         fetchMyProducts();
-      } catch (error) { 
-        alert("Xóa thất bại!"); 
+      } catch (error) {
+        alert("Xóa thất bại!");
       }
     }
   };
@@ -160,7 +160,7 @@ const ProductManager = () => {
             </h1>
             <p className="text-gray-500 text-sm mt-1">Quản lý kho hàng, giá cả và thông tin chi tiết</p>
           </div>
-          <button 
+          <button
             onClick={handleAddNew}
             className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl flex items-center gap-2 font-bold shadow-md shadow-blue-200 transition-all hover:-translate-y-0.5"
           >
@@ -227,36 +227,36 @@ const ProductManager = () => {
       {isModalOpen && (
         <div className="fixed inset-0 bg-slate-900/60 flex items-center justify-center z-[100] p-4 backdrop-blur-sm">
           <div className="bg-white rounded-2xl w-full max-w-4xl p-6 md:p-8 relative shadow-2xl max-h-[90vh] overflow-y-auto">
-            <button 
-              onClick={() => setIsModalOpen(false)} 
+            <button
+              onClick={() => setIsModalOpen(false)}
               className="absolute top-5 right-5 text-gray-400 hover:bg-gray-100 p-2 rounded-full transition"
             >
-              <FiX size={24}/>
+              <FiX size={24} />
             </button>
-            
+
             <h2 className="text-2xl font-bold mb-6 text-gray-800 border-b pb-4">
               {editingId ? 'Cập nhật thông tin sản phẩm' : 'Đăng sản phẩm mới'}
             </h2>
-            
+
             <form onSubmit={handleSubmit} className="flex flex-col md:flex-row gap-8">
-              
+
               {/* CỘT TRÁI: KHU VỰC ẢNH */}
               <div className="w-full md:w-2/5 flex flex-col gap-3">
                 <label className="font-semibold text-gray-700 text-sm">Hình ảnh sản phẩm <span className="text-red-500">*</span></label>
-                
+
                 {/* Upload Area */}
                 <div className="border-2 border-dashed border-blue-200 rounded-2xl bg-blue-50 p-6 text-center hover:border-blue-400 transition-colors">
                   <label className="cursor-pointer flex flex-col items-center">
                     <FiUploadCloud size={40} className="text-blue-500 mb-2" />
                     <span className="font-medium text-blue-600">Click để tải nhiều ảnh</span>
                     <span className="text-xs text-gray-400 mt-1">JPG, PNG (có thể chọn nhiều)</span>
-                    <input 
-                      type="file" 
-                      className="hidden" 
-                      accept="image/*" 
-                      multiple 
-                      onChange={handleImageUpload} 
-                      disabled={uploadingImage} 
+                    <input
+                      type="file"
+                      className="hidden"
+                      accept="image/*"
+                      multiple
+                      onChange={handleImageUpload}
+                      disabled={uploadingImage}
                     />
                   </label>
                 </div>
@@ -266,10 +266,10 @@ const ProductManager = () => {
                   <div className="grid grid-cols-3 gap-3 mt-4">
                     {formData.images.map((img, index) => (
                       <div key={index} className="relative group">
-                        <img 
-                          src={img} 
-                          alt={`preview-${index}`} 
-                          className="w-full h-24 object-cover rounded-xl border" 
+                        <img
+                          src={img}
+                          alt={`preview-${index}`}
+                          className="w-full h-24 object-cover rounded-xl border"
                         />
                         <button
                           type="button"
@@ -291,47 +291,47 @@ const ProductManager = () => {
                 {/* Các trường input giữ nguyên như cũ */}
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1.5">Tên sản phẩm <span className="text-red-500">*</span></label>
-                  <input 
-                    type="text" 
-                    placeholder="Nhập tên sản phẩm..." 
-                    required 
-                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none" 
-                    value={formData.name} 
-                    onChange={(e) => setFormData({...formData, name: e.target.value})} 
+                  <input
+                    type="text"
+                    placeholder="Nhập tên sản phẩm..."
+                    required
+                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-5">
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-1.5">Giá bán (VNĐ) <span className="text-red-500">*</span></label>
-                    <input 
-                      type="number" 
-                      required 
-                      min="0" 
-                      className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none" 
-                      value={formData.price} 
-                      onChange={(e) => setFormData({...formData, price: e.target.value})} 
+                    <input
+                      type="number"
+                      required
+                      min="0"
+                      className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                      value={formData.price}
+                      onChange={(e) => setFormData({ ...formData, price: e.target.value })}
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-1.5">Số lượng kho <span className="text-red-500">*</span></label>
-                    <input 
-                      type="number" 
-                      required 
-                      min="0" 
-                      className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none" 
-                      value={formData.countInStock} 
-                      onChange={(e) => setFormData({...formData, countInStock: Number(e.target.value)})} 
+                    <input
+                      type="number"
+                      required
+                      min="0"
+                      className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                      value={formData.countInStock}
+                      onChange={(e) => setFormData({ ...formData, countInStock: Number(e.target.value) })}
                     />
                   </div>
                 </div>
 
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1.5">Danh mục</label>
-                  <select 
-                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer" 
-                    value={formData.category} 
-                    onChange={(e) => setFormData({...formData, category: e.target.value})}
+                  <select
+                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer"
+                    value={formData.category}
+                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                   >
                     <option value="Điện Thoại & Phụ Kiện">Điện Thoại & Phụ Kiện</option>
                     <option value="Máy Tính & Laptop">Máy Tính & Laptop</option>
@@ -340,22 +340,29 @@ const ProductManager = () => {
                     <option value="Mẹ & Bé">Mẹ & Bé</option>
                     <option value="Nhà Cửa & Đời Sống">Nhà Cửa & Đời Sống</option>
                     <option value="Sắc Đẹp">Sắc Đẹp</option>
+                    <option value="Sức Khỏe">Sức Khỏe</option>
+                    <option value="Giày Dép Nam">Giày Dép Nam</option>
+                    <option value="Phụ Kiện Nữ">Phụ Kiện Nữ</option>
+                    <option value="Đồng Hồ">Đồng Hồ</option>
+                    <option value="Thể Thao & Du Lịch">Thể Thao & Du Lịch</option>
+                    <option value="Ô Tô & Xe Máy">Ô Tô & Xe Máy</option>
+                    <option value="Bách Hóa Online">Bách Hóa Online</option>
                   </select>
                 </div>
 
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1.5">Mô tả sản phẩm</label>
-                  <textarea 
-                    placeholder="Viết mô tả chi tiết..." 
-                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none min-h-[120px]" 
-                    value={formData.description} 
-                    onChange={(e) => setFormData({...formData, description: e.target.value})} 
+                  <textarea
+                    placeholder="Viết mô tả chi tiết..."
+                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none min-h-[120px]"
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   />
                 </div>
 
-                <button 
-                  type="submit" 
-                  disabled={loading || uploadingImage || formData.images.length === 0} 
+                <button
+                  type="submit"
+                  disabled={loading || uploadingImage || formData.images.length === 0}
                   className="w-full bg-blue-600 text-white py-3.5 rounded-xl font-bold hover:bg-blue-700 transition disabled:bg-gray-400"
                 >
                   {loading ? "Đang lưu..." : (editingId ? "Lưu thay đổi" : "Đăng bán sản phẩm")}
