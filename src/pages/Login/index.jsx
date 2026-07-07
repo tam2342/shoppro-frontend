@@ -27,7 +27,6 @@ const Login = () => {
   };
 
   // ==================== ĐĂNG NHẬP THÔNG THƯỜNG + 2FA ====================
-    // ==================== ĐĂNG NHẬP THÔNG THƯỜNG + 2FA ====================
   const handleLogin = async (e) => {
     e.preventDefault(); 
     setError('');
@@ -55,27 +54,6 @@ const Login = () => {
     } catch (err) {
       console.error("Lỗi đăng nhập:", err.response?.data || err);
       setError(err.response?.data?.message || 'Email hoặc mật khẩu không chính xác');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // ==================== XÁC THỰC OTP ====================
-  const handleVerifyOtp = async (e) => {
-    e.preventDefault();
-    setError('');
-    setIsLoading(true);
-
-    try {
-      const response = await axios.post('https://shoppro-backend-k01l.onrender.com/api/auth/verify-otp', {
-        userId: userIdFor2FA,
-        otp: otpCode
-      });
-
-      login(response.data);
-      navigate('/');
-    } catch (err) {
-      setError(err.response?.data?.message || 'Mã OTP không đúng hoặc đã hết hạn');
     } finally {
       setIsLoading(false);
     }
