@@ -6,18 +6,24 @@ export const useAuthStore = create(
     (set) => ({
       user: null, // Ban đầu chưa có ai đăng nhập
       isAuthenticated: false,
-      
+
       // Hàm login nhận dữ liệu thật từ API trả về và lưu lại
-      login: (userData) => set({ 
-        user: userData, 
-        isAuthenticated: true 
+      login: (userData) => set({
+        user: userData,
+        isAuthenticated: true
       }),
-      
+
       // Hàm đăng xuất: Xóa sạch dữ liệu
-      logout: () => set({ 
-        user: null, 
-        isAuthenticated: false 
+      logout: () => set({
+        user: null,
+        isAuthenticated: false
       }),
+
+      // Cập nhật một phần thông tin user (VD: is2FAEnabled, phone, avatar...)
+      // mà không cần đăng nhập lại từ đầu
+      updateUser: (partialData) => set((state) => ({
+        user: state.user ? { ...state.user, ...partialData } : state.user
+      })),
     }),
     {
       name: 'shoppro-auth', // Tên chìa khóa lưu trong bộ nhớ trình duyệt (localStorage)

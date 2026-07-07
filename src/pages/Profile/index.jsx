@@ -45,8 +45,8 @@ const VIETNAM_PROVINCES = [
 const Profile = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('dashboard');
-  
-  const { user, logout } = useAuthStore();
+
+  const { user, logout, updateUser } = useAuthStore();
 
   // State cho sổ địa chỉ
   const [addresses, setAddresses] = useState([]);
@@ -61,14 +61,12 @@ const Profile = () => {
 
   // State cho đổi mật khẩu
   const [showChangePassword, setShowChangePassword] = useState(false);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
     newPassword: '',
     confirmPassword: ''
   });
-
-  // ==================== THÊM STATE CHO 2FA ====================
-  const [is2FAEnabled, setIs2FAEnabled] = useState(user?.is2FAEnabled || false);
 
   // Load địa chỉ từ localStorage
   useEffect(() => {
@@ -130,8 +128,12 @@ const Profile = () => {
     }
   };
 
-  // ==================== ĐỔI MẬT KHẨU ====================
-  const handleChangePassword = () => {
+  // ==================== ĐỔI MẬT KHẨU (ĐÃ NỐI API THẬT) ====================
+  const handleChangePassword = async () => {
+    if (!passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword) {
+      alert("Vui lòng điền đầy đủ thông tin!");
+      return;
+    }
     if (passwordData.newPassword !== passwordData.confirmPassword) {
       alert("Mật khẩu mới không khớp!");
       return;
@@ -141,41 +143,63 @@ const Profile = () => {
       return;
     }
 
-    alert("✅ Đổi mật khẩu thành công! (Chưa kết nối API)");
-    setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
-    setShowChangePassword(false);
+    setIsChangingPassword(true);
+    try {
+      const config = { headers: { Authorization: `Bearer ${user.token}` } };
+
+      const { data } = await axios.put(
+        'https://shoppro-backend-k01l.onrender.com/api/auth/change-password',
+        {
+          currentPassword: passwordData.currentPassword,
+          newPassword: passwordData.newPassword,
+        },
+        config
+      );
+
+      alert(data.message || '✅ Đổi mật khẩu thành công!');
+      setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      setShowChangePassword(false);
+    } catch (error) {
+      console.error("LỖI ĐỔI MẬT KHẨU:", error.response?.data || error.message);
+      const errorMsg = error.response?.data?.message ||
+                      error.message ||
+                      'Không thể đổi mật khẩu. Vui lòng thử lại.';
+      alert('❌ ' + errorMsg);
+    } finally {
+      setIsChangingPassword(false);
+    }
   };
 
-  // ==================== XỬ LÝ 2FA (BỔ SUNG) ====================
+  // ==================== XỬ LÝ 2FA (ĐÃ LƯU VÀO STORE) ====================
   const handleToggle2FA = async () => {
-  try {
-    const config = { 
-      headers: { 
-        Authorization: `Bearer ${user.token}` 
-      } 
-    };
+    try {
+      const config = {
+        headers: {
+          Authorization: `Bearer ${user.token}`
+        }
+      };
 
-    console.log("Đang gọi API toggle 2FA..."); // Debug
+      console.log("Đang gọi API toggle 2FA..."); // Debug
 
-    const { data } = await axios.put(
-      'https://shoppro-backend-k01l.onrender.com/api/auth/toggle-2fa', 
-      {}, 
-      config
-    );
+      const { data } = await axios.put(
+        'https://shoppro-backend-k01l.onrender.com/api/auth/toggle-2fa',
+        {},
+        config
+      );
 
-    setIs2FAEnabled(data.is2FAEnabled);
-    alert(data.message || 'Cập nhật 2FA thành công');
-    
-  } catch (error) {
-    console.error("LỖI TOGGLE 2FA:", error.response?.data || error.message);
-    
-    const errorMsg = error.response?.data?.message || 
-                    error.message || 
-                    'Không thể thay đổi cài đặt 2FA. Vui lòng thử lại.';
-    
-    alert('❌ ' + errorMsg);
-  }
-};
+      updateUser({ is2FAEnabled: data.is2FAEnabled }); // Lưu vào store → persist localStorage, F5 không mất
+      alert(data.message || 'Cập nhật 2FA thành công');
+
+    } catch (error) {
+      console.error("LỖI TOGGLE 2FA:", error.response?.data || error.message);
+
+      const errorMsg = error.response?.data?.message ||
+                      error.message ||
+                      'Không thể thay đổi cài đặt 2FA. Vui lòng thử lại.';
+
+      alert('❌ ' + errorMsg);
+    }
+  };
 
   return (
     <div className="bg-gray-50 min-h-screen py-10">
@@ -197,15 +221,15 @@ const Profile = () => {
                   </p>
                 </div>
               </div>
-              
+
               <nav className="p-4 space-y-1">
                 {menuItems.map((item) => (
                   <button
                     key={item.id}
                     onClick={() => setActiveTab(item.id)}
                     className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all text-left ${
-                      activeTab === item.id 
-                        ? 'bg-blue-50 text-blue-600 font-bold' 
+                      activeTab === item.id
+                        ? 'bg-blue-50 text-blue-600 font-bold'
                         : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 font-medium'
                     }`}
                   >
@@ -214,7 +238,7 @@ const Profile = () => {
                   </button>
                 ))}
                 <div className="pt-4 mt-4 border-t border-gray-100">
-                  <button 
+                  <button
                     onClick={handleLogout}
                     className="w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all text-left text-red-600 hover:bg-red-50 font-medium"
                   >
@@ -290,7 +314,7 @@ const Profile = () => {
               <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
                 <div className="flex justify-between items-center mb-6">
                   <h2 className="text-xl font-bold">Sổ địa chỉ ({addresses.length})</h2>
-                  <button 
+                  <button
                     onClick={() => setShowAddAddress(true)}
                     className="bg-blue-600 text-white px-5 py-2.5 rounded-xl flex items-center gap-2 hover:bg-blue-700 transition"
                   >
@@ -315,7 +339,7 @@ const Profile = () => {
                             <p className="text-gray-600">{addr.detail}</p>
                             <p className="text-gray-600">{addr.city}</p>
                           </div>
-                          <button 
+                          <button
                             onClick={() => deleteAddress(addr.id)}
                             className="text-red-500 hover:text-red-700 self-start"
                           >
@@ -333,9 +357,9 @@ const Profile = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1.5">Họ và tên <span className="text-red-500">*</span></label>
-                        <input 
-                          type="text" 
-                          placeholder="Nhập họ và tên" 
+                        <input
+                          type="text"
+                          placeholder="Nhập họ và tên"
                           className="w-full p-3.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
                           value={newAddress.name}
                           onChange={(e) => setNewAddress({...newAddress, name: e.target.value})}
@@ -344,9 +368,9 @@ const Profile = () => {
 
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1.5">Số điện thoại <span className="text-red-500">*</span></label>
-                        <input 
-                          type="tel" 
-                          placeholder="Nhập số điện thoại" 
+                        <input
+                          type="tel"
+                          placeholder="Nhập số điện thoại"
                           className="w-full p-3.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
                           value={newAddress.phone}
                           onChange={(e) => setNewAddress({...newAddress, phone: e.target.value})}
@@ -355,9 +379,9 @@ const Profile = () => {
 
                       <div className="md:col-span-2">
                         <label className="block text-sm font-medium text-gray-700 mb-1.5">Địa chỉ cụ thể <span className="text-red-500">*</span></label>
-                        <input 
-                          type="text" 
-                          placeholder="Số nhà, tên đường, phường/xã..." 
+                        <input
+                          type="text"
+                          placeholder="Số nhà, tên đường, phường/xã..."
                           className="w-full p-3.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
                           value={newAddress.detail}
                           onChange={(e) => setNewAddress({...newAddress, detail: e.target.value})}
@@ -378,13 +402,13 @@ const Profile = () => {
                     </div>
 
                     <div className="flex gap-4 mt-8">
-                      <button 
+                      <button
                         onClick={addNewAddress}
                         className="bg-blue-600 text-white px-8 py-3 rounded-xl font-medium hover:bg-blue-700"
                       >
                         Lưu địa chỉ
                       </button>
-                      <button 
+                      <button
                         onClick={() => {
                           setShowAddAddress(false);
                           setNewAddress({ name: '', phone: '', detail: '', city: null });
@@ -399,7 +423,7 @@ const Profile = () => {
               </div>
             )}
 
-            {/* ==================== CÀI ĐẶT TÀI KHOẢN (ĐÃ BỔ SUNG 2FA) ==================== */}
+            {/* ==================== CÀI ĐẶT TÀI KHOẢN (ĐÃ BỔ SUNG 2FA + ĐỔI MẬT KHẨU) ==================== */}
             {activeTab === 'settings' && (
               <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 space-y-8">
                 <h2 className="text-xl font-bold">Cài đặt tài khoản</h2>
@@ -415,10 +439,10 @@ const Profile = () => {
                     </p>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer">
-                    <input 
-                      type="checkbox" 
-                      className="sr-only peer" 
-                      checked={is2FAEnabled}
+                    <input
+                      type="checkbox"
+                      className="sr-only peer"
+                      checked={user.is2FAEnabled || false}
                       onChange={handleToggle2FA}
                     />
                     <div className="w-11 h-6 bg-gray-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
@@ -428,7 +452,7 @@ const Profile = () => {
                 {/* Đổi mật khẩu */}
                 <div className="border rounded-2xl p-6">
                   <h3 className="font-semibold mb-4">Đổi mật khẩu</h3>
-                  <button 
+                  <button
                     onClick={() => setShowChangePassword(!showChangePassword)}
                     className="text-blue-600 hover:underline font-medium"
                   >
@@ -437,29 +461,30 @@ const Profile = () => {
 
                   {showChangePassword && (
                     <div className="mt-6 space-y-4 max-w-md animate-fade-in">
-                      <input 
-                        type="password" placeholder="Mật khẩu hiện tại" 
+                      <input
+                        type="password" placeholder="Mật khẩu hiện tại"
                         className="w-full p-3.5 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500"
                         value={passwordData.currentPassword}
                         onChange={(e) => setPasswordData({...passwordData, currentPassword: e.target.value})}
                       />
-                      <input 
-                        type="password" placeholder="Mật khẩu mới" 
+                      <input
+                        type="password" placeholder="Mật khẩu mới"
                         className="w-full p-3.5 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500"
                         value={passwordData.newPassword}
                         onChange={(e) => setPasswordData({...passwordData, newPassword: e.target.value})}
                       />
-                      <input 
-                        type="password" placeholder="Nhập lại mật khẩu mới" 
+                      <input
+                        type="password" placeholder="Nhập lại mật khẩu mới"
                         className="w-full p-3.5 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500"
                         value={passwordData.confirmPassword}
                         onChange={(e) => setPasswordData({...passwordData, confirmPassword: e.target.value})}
                       />
-                      <button 
+                      <button
                         onClick={handleChangePassword}
-                        className="bg-blue-600 text-white px-8 py-3.5 rounded-xl mt-2 hover:bg-blue-700 w-full font-semibold transition"
+                        disabled={isChangingPassword}
+                        className="bg-blue-600 text-white px-8 py-3.5 rounded-xl mt-2 hover:bg-blue-700 w-full font-semibold transition disabled:opacity-50"
                       >
-                        Xác nhận đổi mật khẩu
+                        {isChangingPassword ? 'Đang xử lý...' : 'Xác nhận đổi mật khẩu'}
                       </button>
                     </div>
                   )}
