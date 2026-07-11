@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, Link, useSearchParams } from 'react-router-dom'; // 👉 BỔ SUNG: Thêm useSearchParams
 import axios from 'axios';
 import { useAuthStore } from "../../store/useAuthStore";
-import { FiCheck, FiPackage, FiTruck, FiHome, FiMapPin, FiCreditCard, FiEdit3 } from 'react-icons/fi';
+import { FiCheck, FiPackage, FiTruck, FiHome, FiMapPin, FiCreditCard, FiEdit3, FiHelpCircle, FiX, FiSend } from 'react-icons/fi';
 
 const OrderDetails = () => {
   const { id } = useParams(); 
@@ -13,6 +13,14 @@ const OrderDetails = () => {
 
   const user = useAuthStore((state) => state.user);
   const token = user?.token || useAuthStore((state) => state.token);
+
+  // ==================== STATE CHO FORM HỖ TRỢ / HỦY ĐƠN ====================
+  const [showSupportModal, setShowSupportModal] = useState(false);
+  const [supportType, setSupportType] = useState('support'); // 'support' | 'cancel'
+  const [supportForm, setSupportForm] = useState({ reason: '', message: '', phone: '' });
+  const [isSubmittingSupport, setIsSubmittingSupport] = useState(false);
+  const [supportSuccess, setSupportSuccess] = useState('');
+  const [supportError, setSupportError] = useState('');
 
   // 👉 TÁI CẤU TRÚC: Đưa hàm fetch ra ngoài để dễ gọi lại sau khi thanh toán PayPal
   const fetchOrderDetails = async () => {
@@ -72,6 +80,51 @@ const OrderDetails = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, id, token, setSearchParams]);
 
+  // ==================== XỬ LÝ GỬI FORM HỖ TRỢ / HỦY ĐƠN ====================
+  const openSupportModal = (type) => {
+    setSupportType(type);
+    setSupportForm({ reason: '', message: '', phone: '' });
+    setSupportSuccess('');
+    setSupportError('');
+    setShowSupportModal(true);
+  };
+
+  const closeSupportModal = () => {
+    setShowSupportModal(false);
+  };
+
+  const handleSubmitSupport = async (e) => {
+    e.preventDefault();
+    setSupportError('');
+
+    if (!supportForm.reason.trim()) {
+      setSupportError('Vui lòng nhập lý do / nội dung yêu cầu.');
+      return;
+    }
+
+    setIsSubmittingSupport(true);
+    try {
+      const config = { headers: { Authorization: `Bearer ${token}` } };
+      const { data } = await axios.post(
+        `https://shoppro-backend-k01l.onrender.com/api/orders/${id}/support`,
+        {
+          type: supportType,
+          reason: supportForm.reason,
+          message: supportForm.message,
+          phone: supportForm.phone,
+        },
+        config
+      );
+
+      setSupportSuccess(data.message || 'Yêu cầu của bạn đã được gửi thành công!');
+      setSupportForm({ reason: '', message: '', phone: '' });
+    } catch (err) {
+      setSupportError(err.response?.data?.message || 'Không thể gửi yêu cầu, vui lòng thử lại sau.');
+    } finally {
+      setIsSubmittingSupport(false);
+    }
+  };
+
   if (!token) return <div className="p-12 text-center text-red-500 font-bold">Vui lòng đăng nhập để xem đơn hàng.</div>;
   if (loading && !order) return <div className="p-12 text-center text-gray-500 font-medium">Đang tải chi tiết đơn hàng...</div>;
   if (error) return <div className="p-12 text-center text-red-500 font-bold">{error}</div>;
@@ -80,6 +133,7 @@ const OrderDetails = () => {
   const isProcessing = ['Đang xử lý', 'Đang giao hàng', 'Đã giao'].includes(order.status);
   const isShipping = ['Đang giao hàng', 'Đã giao'].includes(order.status);
   const isDelivered = order.status === 'Đã giao';
+  const canCancel = ['Đang xử lý'].includes(order.status); // chỉ cho phép hủy khi đơn còn đang xử lý
 
   const steps = [
     { title: 'Đã xác nhận', icon: <FiCheck />, completed: true }, 
@@ -104,9 +158,25 @@ const OrderDetails = () => {
             Đặt ngày {new Date(order.createdAt).toLocaleDateString('vi-VN')}
           </p>
         </div>
-        <button className="px-6 py-2 bg-white border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition shadow-sm">
-          Xuất hóa đơn
-        </button>
+        <div className="flex flex-wrap gap-3">
+          <button 
+            onClick={() => openSupportModal('support')}
+            className="px-5 py-2 bg-white border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition shadow-sm flex items-center gap-2"
+          >
+            <FiHelpCircle /> Cần hỗ trợ
+          </button>
+          {canCancel && (
+            <button 
+              onClick={() => openSupportModal('cancel')}
+              className="px-5 py-2 bg-white border border-red-300 text-red-600 font-medium rounded-lg hover:bg-red-50 transition shadow-sm flex items-center gap-2"
+            >
+              <FiX /> Yêu cầu hủy đơn
+            </button>
+          )}
+          <button className="px-6 py-2 bg-white border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition shadow-sm">
+            Xuất hóa đơn
+          </button>
+        </div>
       </div>
 
       {/* Tracking Timeline */}
@@ -249,6 +319,113 @@ const OrderDetails = () => {
           </div>
         </div>
       </div>
+
+      {/* ==================== MODAL FORM HỖ TRỢ / HỦY ĐƠN ==================== */}
+      {showSupportModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <div className="px-6 py-5 border-b border-gray-100 flex justify-between items-center sticky top-0 bg-white rounded-t-2xl">
+              <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                {supportType === 'cancel' ? (
+                  <><FiX className="text-red-600" /> Yêu cầu hủy đơn hàng</>
+                ) : (
+                  <><FiHelpCircle className="text-blue-600" /> Yêu cầu hỗ trợ</>
+                )}
+              </h2>
+              <button onClick={closeSupportModal} className="text-gray-400 hover:text-gray-600">
+                <FiX size={22} />
+              </button>
+            </div>
+
+            <div className="p-6">
+              {supportSuccess ? (
+                <div className="text-center py-6">
+                  <div className="w-14 h-14 rounded-full bg-green-100 text-green-600 flex items-center justify-center mx-auto mb-4">
+                    <FiCheck size={28} />
+                  </div>
+                  <p className="text-gray-900 font-semibold mb-1">Gửi yêu cầu thành công!</p>
+                  <p className="text-gray-500 text-sm">{supportSuccess}</p>
+                  <button 
+                    onClick={closeSupportModal}
+                    className="mt-6 px-6 py-2.5 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition"
+                  >
+                    Đóng
+                  </button>
+                </div>
+              ) : (
+                <form onSubmit={handleSubmitSupport} className="space-y-5">
+                  <p className="text-sm text-gray-500">
+                    Yêu cầu của bạn cho đơn <span className="font-semibold text-gray-900">#{order._id.substring(0, 8).toUpperCase()}</span> sẽ được gửi trực tiếp tới bộ phận hỗ trợ.
+                  </p>
+
+                  {supportError && (
+                    <div className="bg-red-50 border-l-4 border-red-500 p-3 rounded-md">
+                      <p className="text-sm text-red-700 font-medium">{supportError}</p>
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                      {supportType === 'cancel' ? 'Lý do muốn hủy đơn' : 'Bạn cần hỗ trợ về vấn đề gì'} <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={supportForm.reason}
+                      onChange={(e) => setSupportForm({ ...supportForm, reason: e.target.value })}
+                      placeholder={supportType === 'cancel' ? 'VD: Đặt nhầm sản phẩm, muốn đổi địa chỉ...' : 'VD: Đơn hàng bị trễ, sai sản phẩm...'}
+                      className="w-full p-3.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Mô tả chi tiết (tùy chọn)</label>
+                    <textarea
+                      value={supportForm.message}
+                      onChange={(e) => setSupportForm({ ...supportForm, message: e.target.value })}
+                      placeholder="Cung cấp thêm thông tin để chúng tôi hỗ trợ nhanh hơn..."
+                      rows={4}
+                      className="w-full p-3.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none resize-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Số điện thoại liên hệ (tùy chọn)</label>
+                    <input
+                      type="tel"
+                      value={supportForm.phone}
+                      onChange={(e) => setSupportForm({ ...supportForm, phone: e.target.value })}
+                      placeholder="Để chúng tôi gọi lại nếu cần"
+                      className="w-full p-3.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                    />
+                  </div>
+
+                  <div className="flex gap-3 pt-2">
+                    <button
+                      type="submit"
+                      disabled={isSubmittingSupport}
+                      className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-white transition ${
+                        supportType === 'cancel' 
+                          ? 'bg-red-600 hover:bg-red-700' 
+                          : 'bg-blue-600 hover:bg-blue-700'
+                      } ${isSubmittingSupport ? 'opacity-60 cursor-not-allowed' : ''}`}
+                    >
+                      {isSubmittingSupport ? 'Đang gửi...' : <><FiSend /> Gửi yêu cầu</>}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={closeSupportModal}
+                      className="px-6 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition"
+                    >
+                      Hủy
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
