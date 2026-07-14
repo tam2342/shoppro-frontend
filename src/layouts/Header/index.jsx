@@ -3,6 +3,7 @@ import { FiSearch, FiShoppingCart, FiUser, FiPackage, FiMessageSquare } from 're
 import { useCartStore } from '../../store/useCartStore';
 import { useAuthStore } from '../../store/useAuthStore';
 import SearchBar from '../../components/SearchBar';
+import GoogleTranslateSwitcher from '../../components/GoogleTranslateSwitcher'; // 👉 BỔ SUNG: nút chuyển ngôn ngữ
 
 const Header = () => {
   const { user, isAuthenticated } = useAuthStore();
@@ -49,6 +50,9 @@ const Header = () => {
               </Link>
             </div>
           )}
+
+          {/* 👉 BỔ SUNG: Nút chuyển ngôn ngữ VI/EN */}
+          <GoogleTranslateSwitcher />
 
           {/* Icon Giỏ hàng */}
           <Link to="/cart" className="relative text-gray-600 hover:text-blue-600 transition">
